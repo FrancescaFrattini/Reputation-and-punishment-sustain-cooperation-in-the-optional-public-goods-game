@@ -1,0 +1,60 @@
+node_modules
+# Bytecode e file cache di Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# File temporanei
+*.log
+*.tmp
+*.swp
+
+# File di ambiente virtuale
+.env
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Build e distribuzione
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+*.manifest
+*.spec
+
+# Test e copertura
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# IDE e editor vari
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# File di Jupyter Notebook e output temporanei
+.ipynb_checkpoints/
+
+# File di configurazione utente
+*.env
+*.ini
+*.cfg
+.DS_Store
+
+# Sistemi operativi
+Thumbs.db
+ehthumbs.db
