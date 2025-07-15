@@ -9,8 +9,10 @@ class _Strategy:
 
     Class variables:
         - `_Strategy.behavioural_strategy_names` is a list of the names of the strategies ignoring punishment variants (ie. the strategy roots).
-        - `_Strategy.behavioural_strategy` is a dictionary where the keys are the strategy roots, and the values are additional dictionaries containing the lambda function prescribing the action, and a description of the strategy
-        - `_Strategy.punishment_strategies_names` and `_Strategy.punishment_strategies` are the same as above except describing the punishment variants and ignoring the strategy roots. 
+        - `_Strategy.behavioural_strategy` is a dictionary where the keys are the strategy roots, and the values are additional dictionaries containing 
+            the lambda function prescribing the action, and a description of the strategy
+        - `_Strategy.punishment_strategies_names` and `_Strategy.punishment_strategies` are the same as above except describing the punishment variants 
+            and ignoring the strategy roots. 
         - _Strategy.all_strategies is a comprehensive list of all strategies available under this model
         - _Strategy.strategy_groups is a dictionary containing lists of strategies grouped by particular models. 
 
@@ -23,11 +25,14 @@ class _Strategy:
             - prosocialnoloner - AllC and AllD that punishes defectors.
             - noloner - All strategies that do not involve being a loner.
             - noAllC - All strategies without any unconditional cooperators.
+            - Q-Learning - Q-Learning agents without states (only 3 actions)
 
-        - _Strategy.strategy_name_mapping is a dictionary mapping the roman numeral version of strategy names (from I - XI) to the form used in the paper.    
-    """
+        - _Strategy.strategy_name_mapping is a dictionary mapping the roman numeral version of strategy names (from I - XII) to the form used in the paper.    
+        - learner_strategies contains the name of strategies that use Q-Learning.
+        - standard_strategies is a set containing all strategies' names except the ones that use Q-Learning.
+     """
 
-    behavioural_strategy_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"]
+    behavioural_strategy_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
     behavioural_strategy = {
         "I": {
             "function": lambda avg: 1,
@@ -73,6 +78,10 @@ class _Strategy:
             "function": lambda avg: None if avg > 0 else 0,
             "description": "Don't participate if group is mostly good otherwise defect",
         },
+        "XII": {
+            "function": lambda avg, agent=None: agent._choose_action(avg),
+            "description": "Q-Learning (ε-greedy)",
+}
     }
 
     punishment_strategies_names = ["".join(d) for d in product("NP", repeat=3)]
@@ -133,7 +142,11 @@ class _Strategy:
         "IX": "II^{0,L}",
         "X": "III^{-1,D}",
         "XI": "III^{0,D}",
+        "XII": "XII",
     }
+
+    learner_strategies = {"XII"}          
+    standard_strategies = set(behavioural_strategy_names) - learner_strategies
 
     @staticmethod
     def _choose_action(ID, avg_rep):
