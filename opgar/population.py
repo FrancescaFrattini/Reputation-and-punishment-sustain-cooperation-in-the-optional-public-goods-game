@@ -10,8 +10,9 @@ from tqdm import trange
 
 from .norm import _Norm
 from .strategy import _Strategy
-from .agent import _Agent
+from .agent import _Agent, QLearningAgent
 from .utils import deprecated, Utils
+from .strategy import _Strategy
 
 class Population:
     """Simulate a population of agents playing public goods games.
@@ -383,9 +384,11 @@ class Population:
                     self.agents[playerID].tracker = None
                     self.agents[playerID].utility += self.config.sigma
 
+                """
                 logging.info(
                     f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
                 )
+                """
                 
                 if self.track_strategy_actions:
                     for playerID in group:
@@ -403,7 +406,8 @@ class Population:
                 payoff_per_player = (
                     total_contribution * self.config.r / total_participating
                 ) 
-
+                #variable for Q-Learning agents
+                oldUtility = self.agents[playerID].utility 
                 for playerID, contribution in zip(group, group_contribution):
                     self.agents[playerID].tracker = contribution
                     if contribution == 1:
@@ -413,16 +417,21 @@ class Population:
                         self.agents[playerID].utility += payoff_per_player
                     else:
                         self.agents[playerID].utility += self.config.sigma
+                    # Q-Learning agent learns
+                    if self.agents[playerID].strategy["behavioural"] == "XII":
+                        reward = self.agents[playerID].utility - oldUtility
+                        self.agents[playerID].learn(reward, contribution)
 
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
 
+                """
                 logging.info(
                     f"Group of agents ({group}) played the PGG, average payoff was {round(payoff_per_player, 2)} each "
                     f"to {total_participating} agents"
                 )
-
+                """
     def _get_period_result(self):
         """
         Get period results in a pandas Series.
@@ -474,6 +483,8 @@ class Population:
     def _evolve_randnowak(self, transitions):
         """
         Update agent strategies according to Rand and Nowak 2011. 
+        If the chosen mutant is a Q-Learning agent, the method does nothing
+
 
         We use a frequency dependent Moran process with an exponential payoff
         function. In each round, agents interact at random. One agent is then
@@ -489,24 +500,34 @@ class Population:
 
         # Choose a single agent to evolve
         evolving_agent = np.random.choice(self.agents)
+
+        if isinstance(evolving_agent, QLearningAgent):       
+            return
+        
         evolving_agent_old_strategy = evolving_agent.strategy["ID"]
 
         if np.random.random() < self.config.u:
-            possible_strategies = self.config._meta_data["strategy group"]
-            possible_strategies = _Strategy.strategy_groups[possible_strategies]
-            strategy_to_switch_to = np.random.choice(possible_strategies)
+            pool = [
+            s for s in _Strategy.strategy_groups[self.config._meta_data["strategy group"]]
+            if s.split("_")[0] not in _Strategy.learner_strategies
+            ]
+            if not pool:     # paranoia‑check
+                return
+            strategy_to_switch_to = np.random.choice(pool)
         else:
             # Identify the strategy to switch to by the exponential of their utilities
             strategies = [
                 agent.strategy["ID"]
                 for agent in self.agents
                 if agent is not evolving_agent
+                if agent.strategy["behavioural"] not in _Strategy.learner_strategies
             ]
             utilities = np.array(
                 [
                     np.exp(agent.utility)
                     for agent in self.agents
                     if agent is not evolving_agent
+                    if agent.strategy["behavioural"] not in _Strategy.learner_strategies
                 ]
             )
             normalised_utilities = utilities / utilities.sum()
@@ -536,6 +557,8 @@ class Population:
 
         evolving_agent_id = np.random.choice(range(self.config.N))
         evolving_agent = self.agents[evolving_agent_id]
+        if isinstance(evolving_agent, QLearningAgent):       
+            return
         evolving_agent_strategy = evolving_agent.strategy["ID"]
         evolving_agent_group = [group for group in groups if evolving_agent_id in group][0]
                 
@@ -558,8 +581,9 @@ class Population:
         probability_of_update = np.exp(other_agent.utility) / (np.exp(evolving_agent.utility) + np.exp(other_agent.utility))
         if probability_of_update < 0: 
             logging.warn(f"Probability of update ('{probability_of_update}') is negative!")
-        
-        if np.random.random() < probability_of_update:
+
+        if np.random.random() < probability_of_update \
+            and other_agent.strategy["behavioural"] not in _Strategy.learner_strategies:
             self._change_agent_strategy(evolving_agent, other_agent_strategy)
             if evolving_agent_strategy != other_agent_strategy:
                 transitions[evolving_agent_strategy][other_agent_strategy] += 1
@@ -567,14 +591,23 @@ class Population:
     def _mutate(self):
         """
         With probability epsilon, introduce a mutant into the population.
+        If the chosen mutant is a Q-Learning agent, the method does nothing
 
         This should probably not be used in conjunction with self.evolve_randnowak since that incorporates mutation in itself.
+    
         """
         if np.random.random() < self.config.epsilon:
             mutant = np.random.choice(self.agents)
-            mutated_strategy = np.random.choice([*self.config.composition.keys()])
-            while mutated_strategy == mutant.strategy["ID"]:
-                mutated_strategy = np.random.choice([*self.config.composition.keys()])
+        
+            if isinstance(mutant, QLearningAgent):
+                return
+            pool = [
+                s for s in self.strategies
+                if s.split("_")[0] in _Strategy.standard_strategies and s != mutant.strategy["ID"]
+            ]
+            if not pool:                     
+                return
+            mutated_strategy = np.random.choice(pool)
             self._change_agent_strategy(mutant, mutated_strategy)
 
     def _change_agent_strategy(self, agent, new_strategy):
@@ -585,7 +618,13 @@ class Population:
             agent (opgar.Agent): An agent to mutate
             new_strategy (str): A new strategy.
         """
+        root = new_strategy.split("_")[0]
 
+        if not isinstance(agent, QLearningAgent) and root in _Strategy.learner_strategies:
+            logging.warning(
+                f"Trying to assign '{new_strategy}' to a Q-Learning agent. Ignoring")
+            return
+        
         # Update strategy in Agent object
         old_strategy = agent.strategy["ID"]
         agent.strategy = {
@@ -643,6 +682,7 @@ class Population:
         Returns:
             List of agents with a strategy distribution equal to that of composition
         """
+
         # Partition N players into fractions of 1 as accurately as possible
         proportions = Population._distribute_over_N(composition, N)
 
@@ -650,10 +690,15 @@ class Population:
         id_counter = 0
         for strategy, count in proportions.items():
             for _ in range(int(count)):
-                agents.append(_Agent(ID=id_counter, strategy=strategy))
+                if strategy.split("_")[0] == "XII":
+                    # If the strategy is QLearning, create a QLearningAgent
+                    agents.append(QLearningAgent(ID=id_counter))
+                else:
+                    agents.append(_Agent(ID=id_counter, strategy=strategy))
                 id_counter += 1
 
         return agents
+
 
     @staticmethod
     def _generate_population_by_strategy(agentSet, strategies):
