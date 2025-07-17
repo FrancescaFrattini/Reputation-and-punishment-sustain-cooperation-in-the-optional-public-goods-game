@@ -81,7 +81,7 @@ class _Strategy:
         "XII": {
             "function": lambda avg, agent=None: agent._choose_action(avg),
             "description": "Q-Learning (ε-greedy)",
-}
+        }
     }
 
     punishment_strategies_names = ["".join(d) for d in product("NP", repeat=3)]
@@ -118,9 +118,10 @@ class _Strategy:
         "_".join([i, j])
         for i, j in product(behavioural_strategy_names, punishment_strategies_names)
     ]
+
     strategy_groups = {
         "all": all_strategies,
-        "pure": all_strategies[:24],
+        "pure": all_strategies[:24] + all_strategies[-8:],
         "purenopunish": all_strategies[:24:8],
         "nopunish": [strategy for strategy in all_strategies if "_NNN" in strategy],
         "impure": all_strategies[24:],
@@ -128,6 +129,9 @@ class _Strategy:
         "prosocialnoloner": ["I_NNN", "I_NPN", "II_NNN"],
         "noloner": [strategy for strategy in all_strategies if strategy.split("_")[0] in ["I", "II", "IV", "V"]],
         "noAllC": all_strategies[8:],
+        "Q-Learning": all_strategies[-8:],
+        "Cooperator + Q-Learning": all_strategies[:8] + all_strategies[-8:],
+        "Defector + Q-Learning": all_strategies[9:16] + all_strategies[-8:],
     }
 
     strategy_name_mapping = {

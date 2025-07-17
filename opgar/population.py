@@ -50,9 +50,9 @@ class Population:
         self.social_norm = _Norm(config.social_norm)
 
         # Granular record of actions
-        self.track_strategy_actions = False
+        self.track_strategy_actions = True
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, use_group_selection=True, record_actions_by_strategy=False):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, use_group_selection=False, record_actions_by_strategy=False):
         """
         Simulate multiple rounds of public goods games
 
@@ -77,7 +77,7 @@ class Population:
             self.track_strategy_actions = True
 
         '''
-        crea un file j_seed.txt e scrive il seme inserito, se esiste. Il parametro rng_seed non fa altro al momento
+        creates a j_seed.txt file and write the rng_seed if it is not None.
         '''
         if rng_seed is not None:
             with open(f"j{job_id}_seed.txt", "w") as f:
@@ -123,12 +123,14 @@ class Population:
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
 
+                """
                 # Evolution
                 if use_group_selection:
                     self._evolve_group_selection(groups_of_player_IDs, transition_matrix)
                     self._mutate()
                 else:
                     self._evolve_randnowak(transition_matrix)
+                """
                 
                 # Gather extra information and reset
                 period_results[t]["Fitness"] = self._get_population_fitness(period_results[t])
@@ -511,7 +513,7 @@ class Population:
             s for s in _Strategy.strategy_groups[self.config._meta_data["strategy group"]]
             if s.split("_")[0] not in _Strategy.learner_strategies
             ]
-            if not pool:     # paranoia‑check
+            if not pool:     
                 return
             strategy_to_switch_to = np.random.choice(pool)
         else:

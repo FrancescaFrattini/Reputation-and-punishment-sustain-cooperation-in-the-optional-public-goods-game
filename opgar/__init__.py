@@ -8,4 +8,3 @@ from .strategy import _Strategy
 from .norm import _Norm
 from .agent import _Agent
 from .utils import Utils, DummyTqdmFile
-
