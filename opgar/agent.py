@@ -60,24 +60,31 @@ class QLearningAgent(_Agent):
 # uses Strategy XII - Q-Learning without states (only 3 actions)
 
     __slots__ = _Agent.__slots__ + [
-    "q_values", "alpha", "gamma", "epsilon"
+    "q_values", "alpha", "discount_factor", "epsilon"
     ]
+
+    minimum_epsilon = 0.01  # minimum exploration probability
 
     ACTIONS = [1, 0, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
-    def __init__(self, ID, alpha=0.1, gamma=0.99, epsilon=0.1):
+    def __init__(self, ID, alpha=0.1, discount_factor=0.2, epsilon=1.0):
         # NB: strategy root “XII”, no punischment component
         super().__init__(ID, strategy="XII_NNN")
-        self.alpha, self.gamma, self.epsilon = alpha, gamma, epsilon
+        self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
         self.q_values = np.zeros(len(self.ACTIONS))
 
     def _choose_action(self, average_reputation):
         # ignoring average_reputation for now, as this is a Q-Learning agent
+        #epsilon decay
+        if self.epsilon > self.minimum_epsilon:
+            self.epsilon *= 0.99
         if random.random() < self.epsilon:
             return random.choice(self.ACTIONS)
         return self.ACTIONS[int(np.argmax(self.q_values))]
 
     def learn(self, reward, action_taken):
         idx = self.ACTIONS.index(action_taken)
-        td_error = reward - self.q_values[idx]      # no next‑state
+        #as there are no states, we multiply the discount factor by the max Q-value
+        td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]      
         self.q_values[idx] += self.alpha * td_error
+        
