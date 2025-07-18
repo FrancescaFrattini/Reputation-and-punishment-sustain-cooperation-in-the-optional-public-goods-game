@@ -128,8 +128,6 @@ class Population:
                 if use_group_selection:
                     self._evolve_group_selection(groups_of_player_IDs, transition_matrix)
                     self._mutate()
-                else:
-                    self._evolve_randnowak(transition_matrix)
                 """
                 
                 # Gather extra information and reset
@@ -293,6 +291,7 @@ class Population:
 
                         temp_tracker[(punishing_agent.tracker, recipient.tracker)] += 1
                         total_punishments += 1
+                        """
                         logging.debug(
                             f"A{punishing_agent.ID}(s={punishing_agent.strategy['ID']}) punished "
                             f"A{recipient.ID}(s={recipient.strategy['ID']}) "
@@ -301,6 +300,7 @@ class Population:
         logging.info(
             f"Punishment period ending: {total_punishments} punishment(s) enacted"
         )
+        """
 
         return temp_tracker
 
@@ -481,69 +481,6 @@ class Population:
         classed_series.index.names = ["Statistic", "Strategy"]
         return classed_series
 
-    @deprecated
-    def _evolve_randnowak(self, transitions):
-        """
-        Update agent strategies according to Rand and Nowak 2011. 
-        If the chosen mutant is a Q-Learning agent, the method does nothing
-
-
-        We use a frequency dependent Moran process with an exponential payoff
-        function. In each round, agents interact at random. One agent is then
-        randomly selected to change strategy. With probability u, a mutation
-        occurs and the agent picks a new strategy at random. With probability
-        1 − u, the agent adopts the strategy of another agent j, who is
-        selected from the population with probability proportional to
-        exp(utility(j)) where utility(j) is the payoff of agent j.
-
-        Args:
-            transitions (dict): Nested dictionary of counts of strategy transitions.
-        """
-
-        # Choose a single agent to evolve
-        evolving_agent = np.random.choice(self.agents)
-
-        if isinstance(evolving_agent, QLearningAgent):       
-            return
-        
-        evolving_agent_old_strategy = evolving_agent.strategy["ID"]
-
-        if np.random.random() < self.config.u:
-            pool = [
-            s for s in _Strategy.strategy_groups[self.config._meta_data["strategy group"]]
-            if s.split("_")[0] not in _Strategy.learner_strategies
-            ]
-            if not pool:     
-                return
-            strategy_to_switch_to = np.random.choice(pool)
-        else:
-            # Identify the strategy to switch to by the exponential of their utilities
-            strategies = [
-                agent.strategy["ID"]
-                for agent in self.agents
-                if agent is not evolving_agent
-                if agent.strategy["behavioural"] not in _Strategy.learner_strategies
-            ]
-            utilities = np.array(
-                [
-                    np.exp(agent.utility)
-                    for agent in self.agents
-                    if agent is not evolving_agent
-                    if agent.strategy["behavioural"] not in _Strategy.learner_strategies
-                ]
-            )
-            normalised_utilities = utilities / utilities.sum()
-            strategy_to_switch_to = np.random.choice(
-                a=strategies, size=1, p=normalised_utilities
-            )[0]
-
-        # Update the evolving player's new strategy
-        if evolving_agent_old_strategy == strategy_to_switch_to:
-            pass
-        else:
-            self._change_agent_strategy(evolving_agent, strategy_to_switch_to)
-            transitions[evolving_agent_old_strategy][strategy_to_switch_to] += 1
-
     def _evolve_group_selection(self, groups, transitions):
         """
         Evolution implementation using group-selection. 
@@ -594,8 +531,6 @@ class Population:
         """
         With probability epsilon, introduce a mutant into the population.
         If the chosen mutant is a Q-Learning agent, the method does nothing
-
-        This should probably not be used in conjunction with self.evolve_randnowak since that incorporates mutation in itself.
     
         """
         if np.random.random() < self.config.epsilon:
@@ -694,7 +629,7 @@ class Population:
             for _ in range(int(count)):
                 if strategy.split("_")[0] == "XII":
                     # If the strategy is QLearning, create a QLearningAgent
-                    agents.append(QLearningAgent(ID=id_counter))
+                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy))
                 else:
                     agents.append(_Agent(ID=id_counter, strategy=strategy))
                 id_counter += 1
