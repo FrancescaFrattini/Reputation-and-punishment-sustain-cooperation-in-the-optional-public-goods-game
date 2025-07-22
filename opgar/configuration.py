@@ -9,13 +9,12 @@ class Configuration:
             N (int): The number of players in the population.
             n (int): The number of players per Public Goods Game (PGG).
             t (int): The length of the simulation.
-            r (float): The growth factor to the group contribution in the PGG.
-            sigma (float): The growth factor for a loner's utility.
+            r (float): The growth factor to the group contribution in the PGG, used for rewarding cooperators (r > 1).
+            sigma (float): The growth factor for a loner's utility, used to calculate loners' payoff (0 < sigma < (r-1)c, c is the cost sustained by cooperators in every single game)
             composition (dict): A dictionary of strategy and proportion key-value pairs. See _Strategy documentation.
             norm (str): The specific social norm within the population. See _Norm documentation.
             gamma (float): The cost required to punish someone.
             beta (float): The penalty one pays if one is punished.
-            u (float): The probability of update to a random strategy in the strategy group using the Rand and Nowak evolutionary mechanism.
             m (float): The degree of evolutionary mixing in group selection
             epsilon (float): The rate of mutation under group selection, this is unused with Rand and Nowak evolutionary mechanism.
             strategy_group (str): The name of the model being simulated, see `_Strategy.strategy_groups`.
@@ -37,7 +36,6 @@ class Configuration:
                     norm="Defector",
                     gamma=1,
                     beta=2,
-                    u=0.01,
                     m=0.95,
                     omega=10/11, 
                     epsilon=0.1,
@@ -55,7 +53,6 @@ class Configuration:
         "N",
         "gamma",
         "beta",
-        "u",
         "m",
         "epsilon",
         "omega",
@@ -73,7 +70,6 @@ class Configuration:
         norm: str,
         gamma: float,
         beta: float,
-        u: float,
         m: float,
         epsilon: float,
         strategy_group: str, 
@@ -180,11 +176,6 @@ class Configuration:
                 )
         self.gamma = gamma
         self.beta = beta
-
-        # ----------------------------------------------------------------------
-        # EVOLUTIONARY UPDATE PROBABILITY
-        # ----------------------------------------------------------------------
-        self.u = u
 
         # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
