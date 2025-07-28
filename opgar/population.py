@@ -233,9 +233,9 @@ class Population:
         N = self.config.N
 
         for agent in self.agents:
-            if agent.tracker == 1:
+            if agent.tracker[-1] == 1:
                 actions_C += 1
-            elif agent.tracker == 0:
+            elif agent.tracker[-1] == 0:
                 actions_D += 1
             else:
                 actions_L += 1
@@ -283,7 +283,7 @@ class Population:
 
                 for recipient in rest_of_the_group:
                     # Decide whether opponent needs punishment
-                    opponents_last_action = recipient.tracker
+                    opponents_last_action = recipient.tracker[-1]
                     punishment_needed = punishing_agent.choose_punishment(opponents_last_action)
 
                     # Apply punishment, agent pays the punishment cost, opponent pays the punishment penalty
@@ -291,7 +291,7 @@ class Population:
                         punishing_agent.utility -= self.config.gamma
                         recipient.utility -= self.config.beta
 
-                        temp_tracker[(punishing_agent.tracker, recipient.tracker)] += 1
+                        temp_tracker[(punishing_agent.tracker[-1], recipient.tracker[-1])] += 1
                         total_punishments += 1
                         """
                         logging.debug(
@@ -339,7 +339,7 @@ class Population:
         logging.info(f"Reputations are updated ('{self.social_norm_type}')")
         """
         for agent in self.agents:
-            most_recent_action = agent.tracker
+            most_recent_action = agent.tracker[-1]
             current_reputation = agent.reputation
             new_reputation = self.social_norm._assign_reputation(most_recent_action)
             agent.reputation = new_reputation
@@ -386,7 +386,7 @@ class Population:
             if group_actions[None] >= n - 1:
                 # OPGG skipped -> everyone gets the loner's payoff (sigma)
                 for playerID, contribution in zip(group, group_contribution):
-                    self.agents[playerID].tracker = None
+                    self.agents[playerID].tracker.append(None)
                     self.agents[playerID].utility += self.config.sigma
 
                 logging.info(
@@ -412,8 +412,8 @@ class Population:
                 #variable for Q-Learning agents
                 old_utility = self.agents[playerID].utility 
                 for playerID, contribution in zip(group, group_contribution):
-                    self.agents[playerID].tracker = contribution
-                    logging.debug("Player %s chose action %s", playerID, self.agents[playerID].tracker)
+                    self.agents[playerID].tracker.append(contribution)
+                    logging.debug("Player %s chose action %s", playerID, self.agents[playerID].tracker[-1])
                     if contribution == 1: #payoff for cooperators
                         self.agents[playerID].utility -= 1 # contribution given by the player
                         self.agents[playerID].utility += payoff_per_player

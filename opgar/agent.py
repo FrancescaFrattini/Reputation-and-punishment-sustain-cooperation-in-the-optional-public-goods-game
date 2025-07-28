@@ -3,11 +3,12 @@ import random
 
 import numpy as np
 from .strategy import _Strategy
+from collections import deque
 
 class _Agent:
     __slots__ = ["ID", "strategy", "utility", "reputation", "tracker"]
 
-    def __init__(self, ID, strategy):
+    def __init__(self, ID, strategy, n = 5):
         self.ID = ID
         self.strategy = {
             key: val
@@ -16,7 +17,7 @@ class _Agent:
         self.strategy["ID"] = strategy
         self.utility = 1
         self.reputation = 1
-        self.tracker = None
+        self.tracker = deque(maxlen=n)
         """
         logging.info(
             f"Agent {self.ID} created with r={self.reputation} & s={self.strategy}"
@@ -67,8 +68,8 @@ class QLearningAgent(_Agent):
 
     ACTIONS = [1, 0, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
-    def __init__(self, ID, strategy, alpha=0.1, discount_factor=0.1, epsilon=1.0):
-        super().__init__(ID, strategy=strategy)
+    def __init__(self, ID, strategy, n=5, alpha=0.1, discount_factor=0.1, epsilon=1.0):
+        super().__init__(ID, strategy=strategy, n=n)
         self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
         self.q_values = np.zeros(len(self.ACTIONS))
 
