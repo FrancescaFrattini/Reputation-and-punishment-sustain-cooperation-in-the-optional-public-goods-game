@@ -130,8 +130,8 @@ class _Strategy:
         "noloner": [strategy for strategy in all_strategies if strategy.split("_")[0] in ["I", "II", "IV", "V"]],
         "noAllC": all_strategies[8:],
         "Q-Learning": all_strategies[-8:],
-        "Cooperator + Q-Learning": all_strategies[:8] + all_strategies[-8:],
-        "Defector + Q-Learning": all_strategies[9:16] + all_strategies[-8:],
+        "UnconditionalCooperator + Q-Learning": ["I_NNN", "XII_NNN"],
+        "UnconditionalDefector + Q-Learning": ["II_NNN", "XII_NNN"],
     }
 
     strategy_name_mapping = {
