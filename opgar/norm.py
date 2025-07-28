@@ -12,7 +12,7 @@ class _Norm:
 
     Args:
         norm_name (str) = Name of the social norm of the population, can be one of ["Loner", "Defector", "Neither", \
-        None].
+        "Both", None].
     """
     
     '''
@@ -56,7 +56,7 @@ class _Norm:
             "Name": "None",
             "Summary": "This is the social norm that ignores reputation.",
             "Rule": "No actions are assigned reputations. This is only valid in populations with only strategies "
-            "I, II, and III. Errors will be raised to prevent this.",
+            "I, II, III, and XII. Errors will be raised to prevent this.",
         },
     }
     social_norm_names = [*social_norm_descriptions.keys()]
