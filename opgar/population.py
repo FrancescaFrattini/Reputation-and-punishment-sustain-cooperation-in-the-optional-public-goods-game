@@ -99,21 +99,23 @@ class Population:
             reputation_tracker = [None] * (batch_end - batch_start)
             strategy_actions_tracker = {}.fromkeys(range(batch_start, batch_end))
 
+            groups_action_tracker = [{str(num): (0,0) for num in row} for row in self._get_groups()]
+
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
          
                 groups_of_player_IDs = self._get_groups()
                 all_action_tracker = {}.fromkeys(["_".join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
-
+                
                 # First game
-                self._play_public_good_game(groups_of_player_IDs, all_action_tracker)
+                self._play_public_good_game(groups_of_player_IDs, all_action_tracker, groups_action_tracker)
                 if self.social_norm_type:
                     self._update_reputations()
                 punishment_tracker[t] = self._punish(groups_of_player_IDs, None)
                 
                 # Following games occur with probability omega
                 while np.random.random() < self.config.omega:
-                    self._play_public_good_game(groups_of_player_IDs, all_action_tracker)
+                    self._play_public_good_game(groups_of_player_IDs, all_action_tracker, groups_action_tracker)
                     if self.social_norm_type:
                         self._update_reputations()
                     punishment_tracker[t] = self._punish(groups_of_player_IDs, punishment_tracker[t])
@@ -184,7 +186,7 @@ class Population:
 
 
             processing_end = time()
-            print(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
+            logging.info(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
 
         if not disable_export:
             with open(f"j{job_id}_config.json", "w") as f:
@@ -269,7 +271,7 @@ class Population:
         if temp_tracker is None:
             temp_tracker = {(src, dst): 0 for src, dst in product([1, 0, None],[1, 0, None])}
 
-        logging.info("Punishment period starting")
+        # logging.info("Punishment period starting")
         total_punishments = 0
         for group in groups:
             for playerID in group:
@@ -333,9 +335,9 @@ class Population:
         # If we don't care about reputation
         if self.social_norm is None:
             return
-
+        """
         logging.info(f"Reputations are updated ('{self.social_norm_type}')")
-
+        """
         for agent in self.agents:
             most_recent_action = agent.tracker
             current_reputation = agent.reputation
@@ -345,7 +347,7 @@ class Population:
                 f"A{agent.ID}(old={current_reputation}, action={most_recent_action}, new={new_reputation})"
             )
 
-    def _play_public_good_game(self, groups_of_player_IDs, strategy_action_tracker):
+    def _play_public_good_game(self, groups_of_player_IDs, strategy_action_tracker, groups_action_tracker):
         """
         Simulate the public good game (PGG) once for each player in the population
 
@@ -353,10 +355,10 @@ class Population:
             groups_of_player_IDs (list): List of lists describing the groups in which the OPGG is to be played.
             strategy_action_tracker (dictionary): Temporary dictionary tracking the number of C/D/L actions within this time-step.
         """
-
+        """
         # Setup time-step results
         logging.info("Public Goods Game beginning")
-
+        """
 
         # ----------------------------------------------------------------------
         # Play PGG
@@ -373,10 +375,11 @@ class Population:
                 avg_reps[playerID] = sum([self.agents[ID].reputation for ID in group if ID != playerID]) / (n - 1)
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
-            group_contribution = [self.agents[ID]._choose_action(average_reputation=avg_reps[ID]) for ID in group]
+            group_contribution = [self.agents[ID]._choose_action(average_reputation=avg_reps[ID], 
+                                                                 groups_action_tracker=groups_action_tracker) for ID in group]
 
             # Possible cases
-            #   1. (n-1) Loners -> SKIP PGG -> EVERYONE gets sigma
+            #   1. (n-1) Loners -> SKIP PGG -> EVERYONE gets sigma as reward
             #   2. Any non-zero amount of Cooperators/Defectors plays PGG as normal
 
             group_actions = Counter(group_contribution)
@@ -386,17 +389,15 @@ class Population:
                     self.agents[playerID].tracker = None
                     self.agents[playerID].utility += self.config.sigma
 
-                """
                 logging.info(
                     f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
                 )
-                """
                 
                 if self.track_strategy_actions:
                     for playerID in group:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+"None"] += 1
             else:
-                # Normal PGG
+                # Normal PGG, players' reward is calculated as (# of contributors * r / # of players in the group (except loners))
                 try:
                     total_contribution = group_actions[1]  # number of contributors
                 except KeyError:
@@ -409,31 +410,39 @@ class Population:
                     total_contribution * self.config.r / total_participating
                 ) 
                 #variable for Q-Learning agents
-                oldUtility = self.agents[playerID].utility 
+                old_utility = self.agents[playerID].utility 
                 for playerID, contribution in zip(group, group_contribution):
                     self.agents[playerID].tracker = contribution
-                    if contribution == 1:
-                        self.agents[playerID].utility -= 1  
+                    logging.debug("Player %s chose action %s", playerID, self.agents[playerID].tracker)
+                    if contribution == 1: #payoff for cooperators
+                        self.agents[playerID].utility -= 1 # contribution given by the player
                         self.agents[playerID].utility += payoff_per_player
-                    elif contribution == 0:
+                        value = (1, payoff_per_player)
+                    elif contribution == 0: #payoff for defectors
                         self.agents[playerID].utility += payoff_per_player
-                    else:
+                        value = (0, payoff_per_player)
+                    else: #Loner
                         self.agents[playerID].utility += self.config.sigma
+                        value = (None, self.config.sigma)
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
-                        reward = self.agents[playerID].utility - oldUtility
+                        reward = self.agents[playerID].utility - old_utility
                         self.agents[playerID].learn(reward, contribution)
+
+                    try:
+                        next(group for group in groups_action_tracker if str(playerID) in group)[str(playerID)] = value
+                    except StopIteration:
+                        logging.warning(f"playerID '{playerID}' not found in groupsID dictionary.")
 
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
 
-                """
-                logging.info(
+                logging.debug(
                     f"Group of agents ({group}) played the PGG, average payoff was {round(payoff_per_player, 2)} each "
                     f"to {total_participating} agents"
                 )
-                """
+
     def _get_period_result(self):
         """
         Get period results in a pandas Series.
@@ -575,10 +584,11 @@ class Population:
             self.agents_by_strategy[new_strategy] = set()
         self.agents_by_strategy[old_strategy].remove(agent)
         self.agents_by_strategy[new_strategy].add(agent)
-
+        
         logging.info(
             f"Agent {agent.ID} switched from {old_strategy} to {new_strategy}."
         )
+        
 
     def _reset_population(self):
         """
@@ -591,7 +601,8 @@ class Population:
             An agent's reputation
             Any population parameters
         """
-        logging.info("Agents reset")
+
+        # logging.info("Agents reset")
         for agent in self.agents:
             agent.utility = 1
             agent.reputation = 1

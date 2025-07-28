@@ -22,7 +22,7 @@ class _Agent:
             f"Agent {self.ID} created with r={self.reputation} & s={self.strategy}"
         ) """
 
-    def _choose_action(self, average_reputation):
+    def _choose_action(self, average_reputation, groups_action_tracker=None):
         """
         _Agent chooses it's action in a public good game given the average reputation of the other players. Choice
         depends on the player's strategy.
@@ -72,10 +72,11 @@ class QLearningAgent(_Agent):
         self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
         self.q_values = np.zeros(len(self.ACTIONS))
 
-    def _choose_action(self, average_reputation):
+    def _choose_action(self, average_reputation, groups_action_tracker=None):
         """
         For Q-Learning agents there are two options for action selection:
-        1. Epsilon-greedy action selection: with probability epsilon, choose a random action
+        1. Epsilon-greedy action selection: with probability epsilon, choose action based on group's payoff, if all
+            values are 0, choose randomly from the available actions.
             Epsilon value decays at every time step of a factor of 0.99, ensuring exploration
         2. Greedy action selection: choose the action with the highest Q-value
 
@@ -86,12 +87,15 @@ class QLearningAgent(_Agent):
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
         """
-        logging.info(
-            f"avg reputation is {average_reputation}"
-            ) 
+    
         if self.epsilon > self.minimum_epsilon:
             self.epsilon *= 0.99
             if random.random() < self.epsilon:
+                '''
+                group = next(g for g in groups_action_tracker if str(self.ID) in g)
+                if not all(v == (0, 0) for v in group.values()) and group is not None:
+                    return max(group.values(), key=lambda x: x[1])[0]
+                    '''
                 return random.choice(self.ACTIONS)
         return self.ACTIONS[int(np.argmax(self.q_values))]
 
