@@ -8,7 +8,7 @@ from collections import deque
 class _Agent:
     __slots__ = ["ID", "strategy", "utility", "reputation", "tracker"]
 
-    def __init__(self, ID, strategy, n = 5):
+    def __init__(self, ID, strategy, n = 2):
         self.ID = ID
         self.strategy = {
             key: val
@@ -61,19 +61,35 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "q_values", "alpha", "discount_factor", "epsilon"
+    "qtable", "alpha", "discount_factor", "epsilon"
     ]
+
+    ACTIONS_SIZE = 3
 
     minimum_epsilon = 0.01  # minimum exploration probability
 
     ACTIONS = [1, 0, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
-    def __init__(self, ID, strategy, n=5, alpha=0.1, discount_factor=0.1, epsilon=1.0):
+    action_to_index = {1: 0, 0: 1, None: 2}
+    index_to_action = {0: 1, 1: 0, 2: None}
+
+    def __init__(self, ID, strategy, n=2, alpha=0.1, discount_factor=0.1, epsilon=1.0, state_size=1, action_size=3):
         super().__init__(ID, strategy=strategy, n=n)
         self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
-        self.q_values = np.zeros(len(self.ACTIONS))
+        #TODO fix state size and action size
+        #self.state_size = state_size
+        #self.action_size = action_size
+        self.reset_qtable()
 
-    def _choose_action(self, average_reputation, groups_action_tracker=None):
+    def _state_to_index(self, state_tuple):
+        """Converte una tupla di 4 azioni (dei compagni) in un indice [0, 80]"""
+        idx = 0
+        for i, a in enumerate(state_tuple):
+            idx += self.action_to_index[a] * (self.ACTIONS_SIZE ** (self.ACTIONS_SIZE - i))
+        return idx
+
+
+    def _choose_action(self, average_reputation, state=None):
         """
         For Q-Learning agents there are two options for action selection:
         1. Epsilon-greedy action selection: with probability epsilon, choose action based on group's payoff, if all
@@ -91,16 +107,23 @@ class QLearningAgent(_Agent):
     
         if self.epsilon > self.minimum_epsilon:
             self.epsilon *= 0.99
-            if random.random() < self.epsilon:
-                '''
+
+
+        if random.random() < self.epsilon or state is None:
+            '''
                 group = next(g for g in groups_action_tracker if str(self.ID) in g)
                 if not all(v == (0, 0) for v in group.values()) and group is not None:
                     return max(group.values(), key=lambda x: x[1])[0]
-                    '''
-                return random.choice(self.ACTIONS)
-        return self.ACTIONS[int(np.argmax(self.q_values))]
+            '''
+            return random.choice(self.ACTIONS)
 
-    def learn(self, reward, action_taken):
+        s_idx = self._state_to_index(state)
+        logging.info(f"choosing next action by exploiting qtable, action chose is {self.index_to_action[np.argmax(self.qtable[s_idx])]}")
+
+        return self.index_to_action[np.argmax(self.qtable[s_idx])]
+        #return self.ACTIONS[int(np.argmax(self.q_values))]
+
+    def learn(self, state, reward, action_taken, next_state):
         """
         Updates the agent's Q-values based on the action taken and the received reward.
             The Q-value for the action taken is updated using the Q-learning formula:
@@ -118,7 +141,27 @@ class QLearningAgent(_Agent):
         Returns: 
             None      
         """
+
+        if state is None:
+            return
+
+        s_idx = self._state_to_index(state)
+        a_idx = self.action_to_index[action_taken]
+        ns_idx = self._state_to_index(next_state)
+
+        td_target = reward + self.discount_factor * np.max(self.qtable[ns_idx])
+        td_error = td_target - self.qtable[s_idx, a_idx]
+
+        self.qtable[s_idx, a_idx] += self.alpha * td_error
+
+        """
         idx = self.ACTIONS.index(action_taken)
         td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]    
-        self.q_values[idx] += self.alpha * td_error
+        self.q_values[idx] += self.alpha * td_error 
         
+        """
+        
+    def reset_qtable(self):
+        """Reset the Q-table."""
+        self.qtable = np.zeros((81, 3))    
+       

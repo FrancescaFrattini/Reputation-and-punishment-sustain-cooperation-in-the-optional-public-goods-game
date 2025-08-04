@@ -375,12 +375,24 @@ class Population:
                 avg_reps[playerID] = sum([self.agents[ID].reputation for ID in group if ID != playerID]) / (n - 1)
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
-            group_contribution = [self.agents[ID]._choose_action(average_reputation=avg_reps[ID], 
-                                                                 groups_action_tracker=groups_action_tracker) for ID in group]
-
+            group_contribution = [
+                self.agents[ID]._choose_action(
+                    average_reputation=avg_reps[ID],
+                    state=[
+                        self.agents[otherID].tracker[-1]
+                        for otherID in group
+                        if otherID != ID and self.agents[otherID].tracker 
+                    ] if any(self.agents[otherID].tracker for otherID in group if otherID != ID) else None
+                )
+                for ID in group
+            ]
             # Possible cases
             #   1. (n-1) Loners -> SKIP PGG -> EVERYONE gets sigma as reward
             #   2. Any non-zero amount of Cooperators/Defectors plays PGG as normal
+
+            #TODO : passare al choose_action dei Q-Learner lo stato attuale, cioè le 4 azioni precedenti degli altri membri 
+            # del gruppo (se ci sono), e nella chiamata al learn, inserire stato successivo, cioè le 4 azioni scelte nel timestep
+            # attuale dagli altri membri del gruppo
 
             group_actions = Counter(group_contribution)
             if group_actions[None] >= n - 1:
@@ -389,7 +401,7 @@ class Population:
                     self.agents[playerID].tracker.append(None)
                     self.agents[playerID].utility += self.config.sigma
 
-                logging.info(
+                logging.debug(
                     f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
                 )
                 
@@ -427,13 +439,27 @@ class Population:
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         reward = self.agents[playerID].utility - old_utility
-                        self.agents[playerID].learn(reward, contribution)
+                        self.agents[playerID].learn(state = tuple(
+                                                        self.agents[otherID].tracker[-2]
+                                                        for otherID in group
+                                                        if otherID != playerID
+                                                        ) if all(len(self.agents[otherID].tracker) >= 2 for otherID in group if otherID != playerID) else None,
+                                                    reward = reward,
+                                                    action_taken = contribution,
+                                                    next_state=tuple(
+                                                        self.agents[otherID].tracker[-1]
+                                                        for otherID in group
+                                                        if otherID != playerID
+                                                    ) if all(len(self.agents[otherID].tracker) >= 1 for otherID in group if otherID != playerID) 
+                                                    else None
+                                                )
 
+                    '''
                     try:
                         next(group for group in groups_action_tracker if str(playerID) in group)[str(playerID)] = value
                     except StopIteration:
                         logging.warning(f"playerID '{playerID}' not found in groupsID dictionary.")
-
+                    '''
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
