@@ -3,6 +3,7 @@ import json
 import logging
 from collections import Counter
 from itertools import product
+import os
 from time import time
 import numpy as np
 import pandas as pd
@@ -36,7 +37,6 @@ class Population:
         Args:
             config (opgar.Configuration): Object of simulation parameters.
         """
-
         # Parameters
         self.config = config
         self.strategies = set(config.composition.keys())
@@ -78,11 +78,11 @@ class Population:
 
         '''
         creates a j_seed.txt file and write the rng_seed if it is not None.
-        '''
+        
         if rng_seed is not None:
             with open(f"j{job_id}_seed.txt", "w") as f:
                 f.write(str(rng_seed))
-
+        '''
         using_batch = True if self.config.t > 250000 else False
         t_start = 0
         t_end = self.config.t
@@ -143,6 +143,10 @@ class Population:
             # ----------------------------------------------------------------------
             processing_start = time()
 
+            os.makedirs(os.path.dirname("csv/"), exist_ok=True)
+            os.makedirs(os.path.dirname("json/"), exist_ok=True)
+
+
             # Average Payoffs
             avg_payoffs = pd.concat([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)], axis=1).transpose()
             avg_payoffs.index = np.arange(batch_start, batch_end)
@@ -168,29 +172,27 @@ class Population:
             # Punishments
             punishment_tracker = pd.DataFrame.from_dict(punishment_tracker, orient="index", dtype="float16")
             if not disable_export:
-                punishment_tracker.to_csv(f"j{job_id}_punishments_{batch_start}.csv")
+                punishment_tracker.to_csv(f"csv/j{job_id}_punishments_{batch_start}.csv")
 
                 if t_step is not None:
                     batch_code = f"_{batch_start}"
                 else:
                     batch_code = ""
-                action_tracker.to_csv(f"j{job_id}_actions{batch_code}.csv")
-                avg_payoffs.to_csv(f"j{job_id}_payoffs{batch_code}.csv")
-                composition.to_csv(f"j{job_id}_composition{batch_code}.csv")
-                reputation_tracker.to_csv(f"j{job_id}_reputations{batch_code}.csv")
-                transitions.to_csv(f"j{job_id}_transitions{batch_code}.csv")
+                action_tracker.to_csv(f"csv/j{job_id}_actions{batch_code}.csv")
+                avg_payoffs.to_csv(f"csv/j{job_id}_payoffs{batch_code}.csv")
+                composition.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
+                reputation_tracker.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
+                transitions.to_csv(f"csv/j{job_id}_transitions{batch_code}.csv")
 
                 if self.track_strategy_actions:
-                    strategy_actions_tracker.to_csv(f"j{job_id}_granular_actions{batch_code}.csv")
-
-
+                    strategy_actions_tracker.to_csv(f"csv/{job_id}_granular_actions{batch_code}.csv")
 
             processing_end = time()
             logging.info(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
 
         if not disable_export:
-            with open(f"j{job_id}_config.json", "w") as f:
-                json.dump(self.config.to_dict(), f)
+            with open(f"json/j{job_id}_config.json", "w") as f:
+                json.dump(self.config.to_dict(rng_seed), f)
 
         if batch_end == self.config.t or disable_export is True:
             return avg_payoffs, composition, transitions, punishment_tracker, action_tracker, reputation_tracker
@@ -640,8 +642,7 @@ class Population:
         """
         return f"{name}: {', '.join([k[1] + '->' + str(round(v, 4)) for k, v in series.items()])}"
 
-    @staticmethod
-    def _generate_population(N, composition):
+    def _generate_population(self, N, composition):
         """
         Create the population of agents with the required distribution of strategies.
 
@@ -666,7 +667,9 @@ class Population:
             for _ in range(int(count)):
                 if strategy.split("_")[0] == "XII":
                     # If the strategy is QLearning, create a QLearningAgent
-                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy))
+                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy, group_members=self.config.n - 1, 
+                                                alpha=self.config.alpha, discount_factor=self.config.discount_factor, 
+                                                epsilon=self.config.exploration_rate))
                 else:
                     agents.append(_Agent(ID=id_counter, strategy=strategy))
                 id_counter += 1
@@ -766,3 +769,4 @@ class Population:
             ]
         output = "\n".join(s)
         return output
+    
