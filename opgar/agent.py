@@ -61,10 +61,8 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "qtable", "alpha", "discount_factor", "epsilon"
+    "qtable", "alpha", "discount_factor", "epsilon", "action_size", "state_size"
     ]
-
-    ACTIONS_SIZE = 3
 
     minimum_epsilon = 0.01  # minimum exploration probability
 
@@ -73,19 +71,28 @@ class QLearningAgent(_Agent):
     action_to_index = {1: 0, 0: 1, None: 2}
     index_to_action = {0: 1, 1: 0, 2: None}
 
-    def __init__(self, ID, strategy, n=2, alpha=0.1, discount_factor=0.1, epsilon=1.0, state_size=1, action_size=3):
+    def __init__(self, ID, strategy, n=2, alpha=0.1, discount_factor=0.1, epsilon=1.0, group_members=1):
+        
         super().__init__(ID, strategy=strategy, n=n)
         self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
-        #TODO fix state size and action size
-        #self.state_size = state_size
-        #self.action_size = action_size
+        self.action_size = len(self.ACTIONS)
+        self.state_size = self.action_size ** group_members
+
         self.reset_qtable()
 
     def _state_to_index(self, state_tuple):
-        """Converte una tupla di 4 azioni (dei compagni) in un indice [0, 80]"""
+        """
+        Converts a tuple of actions (of the group members) into an index to move along the Q-table.
+
+        Args:
+            state_tuple (tuple): A tuple of actions representing the state of the group members, e.g., (1, 0, None, 1).
+        Returns:
+            int: An index of the corresponding state inside the Q-table.
+        """
+
         idx = 0
         for i, a in enumerate(state_tuple):
-            idx += self.action_to_index[a] * (self.ACTIONS_SIZE ** (self.ACTIONS_SIZE - i))
+            idx += self.action_to_index[a] * (self.action_size ** (self.action_size - i))
         return idx
 
 
@@ -100,6 +107,7 @@ class QLearningAgent(_Agent):
         Args:
             average_reputation (float): The average reputation in [-1, 1] of the other players in the group
             ignoring average_reputation for now, as this is a Q-Learning agent
+            state (tuple): A tuple of actions representing the state of the other group members, e.g., (1, 0, None, 1).
         
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
@@ -108,17 +116,10 @@ class QLearningAgent(_Agent):
         if self.epsilon > self.minimum_epsilon:
             self.epsilon *= 0.99
 
-
         if random.random() < self.epsilon or state is None:
-            '''
-                group = next(g for g in groups_action_tracker if str(self.ID) in g)
-                if not all(v == (0, 0) for v in group.values()) and group is not None:
-                    return max(group.values(), key=lambda x: x[1])[0]
-            '''
             return random.choice(self.ACTIONS)
 
         s_idx = self._state_to_index(state)
-        logging.info(f"choosing next action by exploiting qtable, action chose is {self.index_to_action[np.argmax(self.qtable[s_idx])]}")
 
         return self.index_to_action[np.argmax(self.qtable[s_idx])]
         #return self.ACTIONS[int(np.argmax(self.q_values))]
@@ -127,13 +128,14 @@ class QLearningAgent(_Agent):
         """
         Updates the agent's Q-values based on the action taken and the received reward.
             The Q-value for the action taken is updated using the Q-learning formula:
-            Q(a) = Q(a) + α * (reward + γ * max(Q(a')) - Q(a))
+            Q(st, at) = Q(st, at) + α reward + γ * maxat Q(st+1, at) – Q(st, at)
+
             where:
-            - Q(a) is the current Q-value for the action taken  
+            - Q(st, at) is the current Q-value for the action-state pair taken  
             - α is the learning rate
             - reward is the immediate reward received for the action taken
             - γ is the discount factor
-            - max(Q(a')) is the maximum Q-value for the available actions, as there are no states here   
+            - maxat(Q(st+1, at)) is the maximum Q-value in the next state for all possible actions
         Args:
             reward (float): The reward received for the action taken
             action_taken (str): The action taken by the agent, one of [1, 0, None]
@@ -163,5 +165,4 @@ class QLearningAgent(_Agent):
         
     def reset_qtable(self):
         """Reset the Q-table."""
-        self.qtable = np.zeros((81, 3))    
-       
+        self.qtable = np.zeros((self.state_size, self.action_size))    
