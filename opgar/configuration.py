@@ -19,6 +19,9 @@ class Configuration:
             epsilon (float): The rate of mutation under group selection, this is unused with Rand and Nowak evolutionary mechanism.
             strategy_group (str): The name of the model being simulated, see `_Strategy.strategy_groups`.
             omega (float): Probability of multiple rounds of the OPGG in a single time-step. 
+            alpha(float): The learning rate for Q-Learning agents.
+            discount_factor(float): The discount factor for future rewards in Q-Learning agents.
+            exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -57,6 +60,9 @@ class Configuration:
         "epsilon",
         "omega",
         "_meta_data",
+        "alpha", 
+        "discount_factor",
+        "exploration_rate",
     ]
 
     def __init__(
@@ -73,7 +79,10 @@ class Configuration:
         m: float,
         epsilon: float,
         strategy_group: str, 
-        omega: float = 0,
+        omega: float,
+        alpha: float,
+        discount_factor: float,
+        exploration_rate: float,
     ):
         self._meta_data = {}
 
@@ -196,12 +205,24 @@ class Configuration:
             raise ValueError("Probability of mutation epsilon ('{epsilon}') must be in [0,1].")
         self.epsilon = epsilon
 
+        if discount_factor < 0 or discount_factor > 1:
+            raise ValueError("Discount factor ('{discount_factor}') must be in [0,1].")
+        self.discount_factor = discount_factor
 
-    def to_dict(self):
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("Learning rate alpha ('{alpha}') must be in ]0,1].")
+        self.alpha = alpha
+
+        if exploration_rate < 0 or exploration_rate > 1:
+            raise ValueError("Exploration rate epsilon ('{exploration_rate}') must be in [0,1].")
+        self.exploration_rate = exploration_rate
+
+
+    def to_dict(self, rng_seed = None):
         """
         Return the parameters of a configuration object in dictionary.
         """
-        config_dict = {slot: getattr(self, slot) for slot in self.__slots__}
+        config_dict = {slot: getattr(self, slot) for slot in self.__slots__} | {"seed" : rng_seed if rng_seed is not None else {}}
         # Custom strategy group
         try:
             config_dict["composition"] = (
@@ -211,3 +232,6 @@ class Configuration:
         except:
             config_dict["composition"] = (self._meta_data["strategy group"])
         return config_dict
+
+    
+
