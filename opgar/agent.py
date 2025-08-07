@@ -91,10 +91,10 @@ class QLearningAgent(_Agent):
         """
 
         idx = 0
-        for i, a in enumerate(state_tuple):
-            idx += self.action_to_index[a] * (self.action_size ** (self.action_size - i))
+        for a in state_tuple:
+            idx *= self.action_size
+            idx += self.action_to_index[a]
         return idx
-
 
     def _choose_action(self, average_reputation, state=None):
         """
@@ -122,7 +122,6 @@ class QLearningAgent(_Agent):
         s_idx = self._state_to_index(state)
 
         return self.index_to_action[np.argmax(self.qtable[s_idx])]
-        #return self.ACTIONS[int(np.argmax(self.q_values))]
 
     def learn(self, state, reward, action_taken, next_state):
         """
@@ -155,13 +154,6 @@ class QLearningAgent(_Agent):
         td_error = td_target - self.qtable[s_idx, a_idx]
 
         self.qtable[s_idx, a_idx] += self.alpha * td_error
-
-        """
-        idx = self.ACTIONS.index(action_taken)
-        td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]    
-        self.q_values[idx] += self.alpha * td_error 
-        
-        """
         
     def reset_qtable(self):
         """Reset the Q-table."""
