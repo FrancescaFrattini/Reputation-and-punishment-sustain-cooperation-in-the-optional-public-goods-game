@@ -15,7 +15,7 @@ class Configuration:
             norm (str): The specific social norm within the population. See _Norm documentation.
             gamma (float): The cost required to punish someone.
             beta (float): The penalty one pays if one is punished.
-            m (float): The degree of evolutionary mixing in group selection
+            m (float): Probability of evolutionary mixing in group selection
             epsilon (float): The rate of mutation under group selection, this is unused with Rand and Nowak evolutionary mechanism.
             strategy_group (str): The name of the model being simulated, see `_Strategy.strategy_groups`.
             omega (float): Probability of multiple rounds of the OPGG in a single time-step. 

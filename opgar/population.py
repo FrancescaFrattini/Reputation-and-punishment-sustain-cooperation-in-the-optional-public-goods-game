@@ -52,7 +52,7 @@ class Population:
         # Granular record of actions
         self.track_strategy_actions = True
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, use_group_selection=False, record_actions_by_strategy=False):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, use_group_selection=False, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
 
@@ -185,7 +185,7 @@ class Population:
                 transitions.to_csv(f"csv/j{job_id}_transitions{batch_code}.csv")
 
                 if self.track_strategy_actions:
-                    strategy_actions_tracker.to_csv(f"csv/{job_id}_granular_actions{batch_code}.csv")
+                    strategy_actions_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
 
             processing_end = time()
             logging.info(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
@@ -378,14 +378,7 @@ class Population:
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(
-                    average_reputation=avg_reps[ID],
-                    state=[
-                        self.agents[otherID].tracker[-1]
-                        for otherID in group
-                        if otherID != ID and self.agents[otherID].tracker 
-                    ] if any(self.agents[otherID].tracker for otherID in group if otherID != ID) else None
-                )
+                self.agents[ID]._choose_action(average_reputation=avg_reps[ID])
                 for ID in group
             ]
             # Possible cases
@@ -441,27 +434,8 @@ class Population:
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         reward = self.agents[playerID].utility - old_utility
-                        self.agents[playerID].learn(state = tuple(
-                                                        self.agents[otherID].tracker[-2]
-                                                        for otherID in group
-                                                        if otherID != playerID
-                                                        ) if all(len(self.agents[otherID].tracker) >= 2 for otherID in group if otherID != playerID) else None,
-                                                    reward = reward,
-                                                    action_taken = contribution,
-                                                    next_state=tuple(
-                                                        self.agents[otherID].tracker[-1]
-                                                        for otherID in group
-                                                        if otherID != playerID
-                                                    ) if all(len(self.agents[otherID].tracker) >= 1 for otherID in group if otherID != playerID) 
-                                                    else None
-                                                )
-
-                    '''
-                    try:
-                        next(group for group in groups_action_tracker if str(playerID) in group)[str(playerID)] = value
-                    except StopIteration:
-                        logging.warning(f"playerID '{playerID}' not found in groupsID dictionary.")
-                    '''
+                        self.agents[playerID].learn(reward = reward, action_taken = contribution)
+                        
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
