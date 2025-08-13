@@ -1,56 +1,44 @@
 '''
-Reputation and Punishment sustain cooperation in the Optional Public Goods Game
-Shirsendu Podder, Simone Righi, Francesca Pancotto
-
- # @ Author: Shirsendu Podder
- # @ Created: 2021-05-10 
- # @ Description: Example script to run a single simulation from the paper
+Example script to run a single simulation of the optional public goods game with a population of agents.
+This script sets up a population with a specific configuration and runs the simulation, printing the results.
+It uses the `opgar` library to create the population and manage the simulation process.
 '''
 
-"""
-| Configuration(N: int, n: int, r: float, sigma: float, t: int, composition: dict, norm: str, gamma: float, beta: float, u: float, strategy_group: str)
-|
-|  Provides the functionality and error checking for all parameterizations of simulations.
-|
-|  Args:
-|      N (int): The number of players in the population.
-|      n (int): The number of players per Public Goods Game (PGG).
-|      t (int): The length of the simulation.
-|      r (float): The growth factor to the group contribution in the PGG.
-|      sigma (float): The growth factor for a loner's utility.
-|      composition (dict): A dictionary of strategy and proportion key-value pairs. See _Strategy documentation.
-|      norm (str): The specific social norm within the population. See _Norm documentation.
-|      gamma (float): The cost required to punish someone.
-|      beta (float): The penalty one pays if one is punished.
-|      u (float): The probability of update to a random strategy in the strategy group.
-"""
+from opgar import Population, _Strategy, Configuration
+import logging
 
 
-from opgar import Configuration, Population, _Strategy
+logging.basicConfig(
+    level=logging.INFO,                 # Set logging level to INFO 
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    force=True                          
+)
 
-if __name__ == "__main__":
+only_cooperate_and_learner = _Strategy.strategy_groups["UnconditionalCooperator + Q-Learning"]
+only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-Learning"]
+only_qlearner = _Strategy.strategy_groups["Q-Learning no punishment"]
 
-    model_name = "purenopunish"
-    social_norm = None
+config = Configuration(
+    N = 1000, 
+    n = 10, 
+    t = 1000, 
+    r = 3, 
+    sigma = 1,
+    composition = {}.fromkeys(only_qlearner, 1/len(only_qlearner)), #only Q-Learners
+    norm = None,
+    gamma = 0,
+    beta = 0,
+    m = 0.95,
+    omega = 0, 
+    epsilon = 0,
+    strategy_group = "Q-Learning no punishment",
+    alpha = 0.1,
+    exploration_rate = 1.0,
+    discount_factor = 0.1
+    )
 
-    strategies = _Strategy.strategy_groups[model_name]
-    config = Configuration(
-        N=1000, 
-        n=5, 
-        t=200000, 
-        r=3, 
-        sigma=1,
-        composition={}.fromkeys(strategies, 1/len(strategies)), 
-        norm=social_norm,
-        gamma=1,
-        beta=2,
-        u=0.01,
-        m=0.95,
-        omega=10/11, 
-        epsilon=0.1,
-        strategy_group=model_name)
-        
-    print(config)
-    
-    P = Population(config=config)
-    P.simulate(use_group_selection=True, t_step=25000, job_id=0000)
+model = Population(config)
+
+results = model.simulate(job_id=3, rng_seed=42)
+
+print(results)
