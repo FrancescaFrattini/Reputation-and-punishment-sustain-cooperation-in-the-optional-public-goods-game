@@ -61,7 +61,7 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "qtable", "alpha", "discount_factor", "epsilon",
+    "q_values", "alpha", "discount_factor", "epsilon",
     ]
 
     minimum_epsilon = 0.01  # minimum exploration probability

@@ -641,7 +641,7 @@ class Population:
             for _ in range(int(count)):
                 if strategy.split("_")[0] == "XII":
                     # If the strategy is QLearning, create a QLearningAgent
-                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy, group_members=self.config.n - 1, 
+                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy,  
                                                 alpha=self.config.alpha, discount_factor=self.config.discount_factor, 
                                                 epsilon=self.config.exploration_rate))
                 else:
