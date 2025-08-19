@@ -4,6 +4,7 @@ This script sets up a population with a specific configuration and runs the simu
 It uses the `opgar` library to create the population and manage the simulation process.
 '''
 
+import random
 from opgar import Population, _Strategy, Configuration
 import logging
 
@@ -20,8 +21,8 @@ only_qlearner = _Strategy.strategy_groups["Q-Learning no punishment"]
 
 config = Configuration(
     N = 1000, 
-    n = 10, 
-    t = 1000, 
+    n = 5, 
+    t = 10000, 
     r = 3, 
     sigma = 1,
     composition = {}.fromkeys(only_qlearner, 1/len(only_qlearner)), #only Q-Learners
@@ -39,6 +40,7 @@ config = Configuration(
 
 model = Population(config)
 
-results = model.simulate(job_id=3, rng_seed=42)
-
-print(results)
+for id in range(0, 10):
+    seed = random.randint(0, 1000)
+    results = model.simulate(job_id=id, rng_seed=seed)
+    print(results)
