@@ -83,7 +83,6 @@ class QLearningAgent(_Agent):
 
         Args:
             average_reputation (float): The average reputation in [-1, 1] of the other players in the group
-            ignoring average_reputation for now, as this is a Q-Learning agent
             
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None

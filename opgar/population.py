@@ -1,7 +1,7 @@
 import copy
 import json
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from itertools import product
 import os
 from time import time
@@ -40,6 +40,8 @@ class Population:
         # Parameters
         self.config = config
         self.strategies = set(config.composition.keys())
+
+        self.actions = [1, 0, None]
 
         # Generate agents with strategy distribution
         self.agents = self._generate_population(config.N, config.composition)
@@ -124,6 +126,10 @@ class Population:
                 period_results[t] = self._get_period_result()
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
+                
+                """ period_results[t]["Average Payoffs"] = pd.Series(
+                    {key: period_results[t]["Payoffs"].loc[key] / strategy_actions_tracker[t][key] for key in period_results[t]["Payoffs"].index}
+                ) """
 
                 """
                 # Evolution
@@ -146,8 +152,11 @@ class Population:
             os.makedirs(os.path.dirname("csv/"), exist_ok=True)
             os.makedirs(os.path.dirname("json/"), exist_ok=True)
 
+            logging.info([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)])
+            logging.info([period_results[t]["Composition"] for t in range(batch_start, batch_end)])
 
             # Average Payoffs
+            #avg_payoffs = pd.DataFrame([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)])
             avg_payoffs = pd.concat([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)], axis=1).transpose()
             avg_payoffs.index = np.arange(batch_start, batch_end)
             avg_payoffs = avg_payoffs.astype("float16")
@@ -252,9 +261,11 @@ class Population:
         Returns:
             fitness (float): The population fitness at a single time-step.
         """ 
-
+        #average payoff for each strategy
         average_payoffs = period_results["Average Payoffs"]
+        #proportion of each strategy
         composition = period_results["Composition"]
+        #weighted average
         fitness = (average_payoffs * composition).sum()
         return fitness
 
@@ -445,6 +456,9 @@ class Population:
                     f"to {total_participating} agents"
                 )
 
+#TODO farlo uguale, però contando il payoff medio di chi fa Cooperate, Defect o Abstain (senza guardare la strategia perchè 
+# ce n'è solo una) 
+
     def _get_period_result(self):
         """
         Get period results in a pandas Series.
@@ -455,33 +469,27 @@ class Population:
 
         # Save all results for the time-step here (possibly multiple rounds of games)
         period_result = {
-            "Payoffs": {}.fromkeys(self.strategies, 0),
-            "Composition Count": {}.fromkeys(self.strategies, 0),
-            "Composition": {}.fromkeys(self.strategies, 0),
-            "Average Payoffs": {}.fromkeys(self.strategies, 0),
+            "Payoffs": defaultdict(float),
+            "Composition Count": defaultdict(int),
+            "Composition": defaultdict(float),
+            "Actions per strategy": defaultdict(int)
         }
         # Record total strategy payoffs, strategy composition
         for agent in self.agents:
-            period_result["Payoffs"][agent.strategy["ID"]] += agent.utility
+            period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
-
+            period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
+            
         for strategy in self.strategies:
-            # If no players left in the strategy, payoff is 0
-            player_count = period_result["Composition Count"][strategy]
-            if player_count == 0:
-                period_result["Average Payoffs"][strategy] = 0
-                continue
-
-            # Average strategy payoffs by number of agents using the strategy
-            period_result["Average Payoffs"][strategy] = (
-                period_result["Payoffs"][strategy] / player_count
-            )
-
             # Get population composition as a proportion instead of relative size
             period_result["Composition"][strategy] = (
                 period_result["Composition Count"][strategy] / self.config.N
             )
-
+        # Average strategy payoffs by number of agents using the strategy and by action
+        period_result["Average Payoffs"] = {
+            k: period_result["Payoffs"][k] / period_result["Actions per strategy"][k]
+            for k in period_result["Payoffs"]}
+    
         # Flatten period_result from dict-of-dicts to single-level dict
         #   e.g. {"a1": {"a2": []}, "b1"={"b2":[]}} -> {('a1', 'a2'): [], ('b1', 'b2'): []}
         #   This makes it easier to convert it to a MultiIndex Series/DataFrame later when concatenating results over
@@ -607,7 +615,7 @@ class Population:
         # logging.info("Agents reset")
         for agent in self.agents:
             agent.utility = 1
-            agent.reputation = 1
+            # agent.reputation = 1
 
     @staticmethod
     def _log_series(name, series):
