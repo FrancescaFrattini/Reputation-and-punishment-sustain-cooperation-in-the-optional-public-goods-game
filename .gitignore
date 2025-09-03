@@ -58,3 +58,7 @@ coverage.xml
 # Sistemi operativi
 Thumbs.db
 ehthumbs.db
+
+csv/*
+json/*
+opgg/*
