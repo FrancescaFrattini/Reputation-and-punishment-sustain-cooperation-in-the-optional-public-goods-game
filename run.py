@@ -5,6 +5,7 @@ It uses the `opgar` library to create the population and manage the simulation p
 '''
 
 import random
+import numpy as np
 from opgar import Population, _Strategy, Configuration
 import logging
 
@@ -20,9 +21,9 @@ only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-L
 only_qlearner = _Strategy.strategy_groups["Q-Learning no punishment"]
 
 config = Configuration(
-    N = 1000, 
+    N = 20, 
     n = 5, 
-    t = 10000, 
+    t = 10, 
     r = 3, 
     sigma = 1,
     composition = {}.fromkeys(only_qlearner, 1/len(only_qlearner)), #only Q-Learners
@@ -30,16 +31,21 @@ config = Configuration(
     gamma = 0,
     beta = 0,
     m = 0.95,
-    omega = 0, 
+    omega = 1, 
     epsilon = 0,
     strategy_group = "Q-Learning no punishment",
     alpha = 0.1,
     exploration_rate = 1.0,
-    discount_factor = 0.1
+    discount_factor = 0.1,
+    delta = 0.7
     )
 
 model = Population(config)
 
+#for id in range(0, 10):
+seed = random.randint(0, 1000)
+random.seed(seed)
+np.random.seed(seed)
 for id in range(0, 10):
     seed = random.randint(0, 1000)
     results = model.simulate(job_id=id, rng_seed=seed)
