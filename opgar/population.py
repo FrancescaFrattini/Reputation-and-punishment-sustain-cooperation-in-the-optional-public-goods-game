@@ -4,6 +4,7 @@ import logging
 from collections import Counter, defaultdict
 from itertools import product
 import os
+import random
 from time import time
 import numpy as np
 import pandas as pd
@@ -61,7 +62,6 @@ class Population:
         Args:
             t_step (int): Export data every t_step periods. For efficient memory usage in very long simulations. Default is None.
             job_id (str): Prepend all exported data files with this job_id.
-            rng_seed (int): Set the seed for numpy RNG. (WARNING: Not functional yet)
             disable_bar (bool): Remove the tqdm progress bar if True. Default is False.
             disable_export (bool): Do not export datafiles if True. Default is False.
 
@@ -78,13 +78,6 @@ class Population:
         if record_actions_by_strategy:
             self.track_strategy_actions = True
 
-        '''
-        creates a j_seed.txt file and write the rng_seed if it is not None.
-        
-        if rng_seed is not None:
-            with open(f"j{job_id}_seed.txt", "w") as f:
-                f.write(str(rng_seed))
-        '''
         using_batch = True if self.config.t > 250000 else False
         t_start = 0
         t_end = self.config.t
@@ -94,6 +87,8 @@ class Population:
 
         transition_matrix = self._generate_transition_matrix(self.strategies)
 
+        self.groups_of_players_IDs = self._get_groups()
+
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
             period_results = {}.fromkeys(range(batch_start, batch_end))
             punishment_tracker = {}.fromkeys(range(batch_start, batch_end))
@@ -101,40 +96,38 @@ class Population:
             reputation_tracker = [None] * (batch_end - batch_start)
             strategy_actions_tracker = {}.fromkeys(range(batch_start, batch_end))
 
-            groups_action_tracker = [{str(num): (0,0) for num in row} for row in self._get_groups()]
-
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
-         
-                groups_of_player_IDs = self._get_groups()
-                all_action_tracker = {}.fromkeys(["_".join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
-                
+
+                # group mixing at each timestep
+                if np.random.random() < self.config.delta:
+                    self.groups_of_players_IDs = self._get_groups()
+
+                all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
+
                 # First game
-                self._play_public_good_game(groups_of_player_IDs, all_action_tracker, groups_action_tracker)
+                self._play_public_good_game(all_action_tracker)
                 if self.social_norm_type:
                     self._update_reputations()
-                punishment_tracker[t] = self._punish(groups_of_player_IDs, None)
+                punishment_tracker[t] = self._punish(None)
                 
                 # Following games occur with probability omega
                 while np.random.random() < self.config.omega:
-                    self._play_public_good_game(groups_of_player_IDs, all_action_tracker, groups_action_tracker)
+                    self._play_public_good_game(all_action_tracker)
                     if self.social_norm_type:
                         self._update_reputations()
-                    punishment_tracker[t] = self._punish(groups_of_player_IDs, punishment_tracker[t])
+                    punishment_tracker[t] = self._punish(punishment_tracker[t])
 
                 # Neaten results
                 period_results[t] = self._get_period_result()
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
-                
-                """ period_results[t]["Average Payoffs"] = pd.Series(
-                    {key: period_results[t]["Payoffs"].loc[key] / strategy_actions_tracker[t][key] for key in period_results[t]["Payoffs"].index}
-                ) """
+
 
                 """
                 # Evolution
                 if use_group_selection:
-                    self._evolve_group_selection(groups_of_player_IDs, transition_matrix)
+                    self._evolve_group_selection(groups_of_players_IDs, transition_matrix)
                     self._mutate()
                 """
                 
@@ -151,9 +144,6 @@ class Population:
 
             os.makedirs(os.path.dirname("csv/"), exist_ok=True)
             os.makedirs(os.path.dirname("json/"), exist_ok=True)
-
-            logging.info([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)])
-            logging.info([period_results[t]["Composition"] for t in range(batch_start, batch_end)])
 
             # Average Payoffs
             #avg_payoffs = pd.DataFrame([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)])
@@ -218,7 +208,7 @@ class Population:
             n (int, optional): Size of a single group. Defaults to None.
 
         Returns:
-            groups_of_player_IDs (list): List of agent ID numbers (ints).
+            groups_of_players_IDs (list): List of agent ID numbers (ints).
         """
         if N is None or n is None:
             N = self.config.N
@@ -226,8 +216,8 @@ class Population:
 
         player_IDs = np.arange(N)
         np.random.shuffle(player_IDs)
-        groups_of_player_IDs = np.reshape(player_IDs, (int(N / n), n)) 
-        return groups_of_player_IDs
+        groups_of_players_IDs = np.reshape(player_IDs, (int(N / n), n)) 
+        return groups_of_players_IDs
 
     def _record_reputations(self):
         """
@@ -269,12 +259,11 @@ class Population:
         fitness = (average_payoffs * composition).sum()
         return fitness
 
-    def _punish(self, groups, temp_tracker):
+    def _punish(self, temp_tracker):
         """
         Each player in each group has the opportunity to punish any and all of the other players in his group.
 
         Args:
-            groups (list): List of lists specifying the player IDs in each group
             temp_tracker (dict): Temporary container of all the results from the present time-step.
         """
 
@@ -286,7 +275,7 @@ class Population:
 
         # logging.info("Punishment period starting")
         total_punishments = 0
-        for group in groups:
+        for group in self.groups_of_players_IDs:
             for playerID in group:
                 # Each person in the group punishes the others 
                 punishing_agent = self.agents[playerID]
@@ -360,12 +349,12 @@ class Population:
                 f"A{agent.ID}(old={current_reputation}, action={most_recent_action}, new={new_reputation})"
             )
 
-    def _play_public_good_game(self, groups_of_player_IDs, strategy_action_tracker, groups_action_tracker):
+    def _play_public_good_game(self, strategy_action_tracker):
         """
         Simulate the public good game (PGG) once for each player in the population
 
         Args:
-            groups_of_player_IDs (list): List of lists describing the groups in which the OPGG is to be played.
+            groups_of_players_IDs (list): List of lists describing the groups in which the OPGG is to be played.
             strategy_action_tracker (dictionary): Temporary dictionary tracking the number of C/D/L actions within this time-step.
         """
         """
@@ -378,10 +367,10 @@ class Population:
         # ----------------------------------------------------------------------
         
         # group size
-        n = len(groups_of_player_IDs[0])
-        
+        n = len(self.groups_of_players_IDs[0])
+
         # Play PGG in groups of n
-        for group in groups_of_player_IDs:
+        for group in self.groups_of_players_IDs:
             # Each player calculates the average reputation of the group based on the *rest* of the group
             avg_reps = {}
             for playerID in group:
@@ -456,8 +445,6 @@ class Population:
                     f"to {total_participating} agents"
                 )
 
-#TODO farlo uguale, però contando il payoff medio di chi fa Cooperate, Defect o Abstain (senza guardare la strategia perchè 
-# ce n'è solo una) 
 
     def _get_period_result(self):
         """
@@ -500,7 +487,8 @@ class Population:
         classed_series.index.names = ["Statistic", "Strategy"]
         return classed_series
 
-    def _evolve_group_selection(self, groups, transitions):
+
+    def _evolve_group_selection(self, transitions):
         """
         Evolution implementation using group-selection. 
 
@@ -509,7 +497,6 @@ class Population:
         W_j / (W_j + W_i) where W_x is the payoff of individual x including the costs of giving or receiving punishment.
 
         Args:
-            groups (list): Lists the groups in which the OPGG has been played.
             transitions (dict): Nested dictionary of counts of strategy transitions.
         """
 
@@ -518,7 +505,7 @@ class Population:
         if isinstance(evolving_agent, QLearningAgent):       
             return
         evolving_agent_strategy = evolving_agent.strategy["ID"]
-        evolving_agent_group = [group for group in groups if evolving_agent_id in group][0]
+        evolving_agent_group = [group for group in self.groups_of_players_IDs if evolving_agent_id in group][0]
                 
         if np.random.random() < 1 - self.config.m:
             # selection from another individual in the same group
@@ -529,9 +516,9 @@ class Population:
             other_agent_strategy = other_agent.strategy["ID"]
         else:
             # selection from someone in another group
-            other_group = groups[np.random.randint(len(groups))]
+            other_group = self.groups_of_players_IDs[np.random.randint(len(self.groups_of_players_IDs))]
             while evolving_agent_id in other_group:
-                other_group = groups[np.random.randint(len(groups))]
+                other_group = self.groups_of_players_IDs[np.random.randint(len(self.groups_of_players_IDs))]
             other_agent_id = np.random.choice(other_group)
             other_agent = self.agents[other_agent_id]
             other_agent_strategy = other_agent.strategy["ID"]
