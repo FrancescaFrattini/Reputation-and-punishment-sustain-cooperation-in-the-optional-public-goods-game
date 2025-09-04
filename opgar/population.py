@@ -109,10 +109,10 @@ class Population:
                 self._play_public_good_game(all_action_tracker)
                 if self.social_norm_type:
                     self._update_reputations()
-                punishment_tracker[t] = self._punish(None)
+                punishment_tracker[t] = self._punish(punishment_tracker[t])
                 
                 # Following games occur with probability omega
-                while np.random.random() < self.config.omega:
+                for _ in range(0, self.config.omega - 1):
                     self._play_public_good_game(all_action_tracker)
                     if self.social_norm_type:
                         self._update_reputations()
@@ -267,7 +267,8 @@ class Population:
             temp_tracker (dict): Temporary container of all the results from the present time-step.
         """
 
-        if "nopunish" in self.config._meta_data["strategy group"]:
+        if "nopunish" in self.config._meta_data["strategy group"] or \
+            "Q-Learning no punishment" in self.config._meta_data["strategy group"]:
             return
 
         if temp_tracker is None:

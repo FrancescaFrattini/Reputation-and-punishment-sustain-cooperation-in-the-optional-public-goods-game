@@ -18,7 +18,7 @@ class Configuration:
             m (float): Probability of evolutionary mixing in group selection
             epsilon (float): The rate of mutation under group selection, this is unused with Rand and Nowak evolutionary mechanism.
             strategy_group (str): The name of the model being simulated, see `_Strategy.strategy_groups`.
-            omega (float): Probability of multiple rounds of the OPGG in a single time-step. 
+            omega (float): Number of rounds played of the OPGG in a single time-step. 
             alpha(float): The learning rate for Q-Learning agents.
             discount_factor(float): The discount factor for future rewards in Q-Learning agents.
             exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
@@ -81,7 +81,7 @@ class Configuration:
         m: float,
         epsilon: float,
         strategy_group: str, 
-        omega: float,
+        omega: int,
         alpha: float,
         discount_factor: float,
         exploration_rate: float,
@@ -192,8 +192,8 @@ class Configuration:
         # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
         # ----------------------------------------------------------------------
-        if omega < 0 or omega >= 1:
-            raise ValueError("Probability of further interactions omega ('{omega}') must be within [0,1).")
+        if omega < 1 or omega >= n:
+            raise ValueError("Probability of further interactions omega ('{omega}') must be within [1,n).")
         self.omega = omega
 
         # ----------------------------------------------------------------------
