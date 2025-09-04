@@ -17,12 +17,11 @@ rename_map = {
     "XII_NNN_1": "Q-Learner - Cooperator"
 }
 
-#rolling window for mean
-window = 2
+window = 100
 
 plt.figure(figsize=(10, 6))
 
-for col in df.columns[1:]:
+for col in df.columns:
     label = rename_map.get(col, col)
 
     rolling_mean = df[col].rolling(window=window, min_periods=1).mean()
