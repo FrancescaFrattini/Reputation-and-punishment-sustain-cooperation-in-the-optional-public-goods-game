@@ -118,6 +118,9 @@ class Population:
                         self._update_reputations()
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
 
+                if self.config.exploration_rate > self.config.minimum_exploration_rate:
+                    self.config.exploration_rate *= 0.9995
+
                 # Neaten results
                 period_results[t] = self._get_period_result()
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
@@ -167,7 +170,11 @@ class Population:
             # Reputations
             reputation_tracker = pd.DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             reputation_tracker.astype("float16")
-            
+            # Actions transitions
+            actions_transitions = pd.concat([pd.Series(period_results[t]["Transitions"]) for t in range(batch_start, batch_end)], axis=1).transpose()
+            actions_transitions.index = np.arange(batch_start, batch_end)
+            actions_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+
             # Punishments
             punishment_tracker = pd.DataFrame.from_dict(punishment_tracker, orient="index", dtype="float16")
             if not disable_export:
@@ -379,16 +386,12 @@ class Population:
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(average_reputation=avg_reps[ID])
+                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.config.exploration_rate)
                 for ID in group
             ]
             # Possible cases
             #   1. (n-1) Loners -> SKIP PGG -> EVERYONE gets sigma as reward
             #   2. Any non-zero amount of Cooperators/Defectors plays PGG as normal
-
-            #TODO : passare al choose_action dei Q-Learner lo stato attuale, cioè le 4 azioni precedenti degli altri membri 
-            # del gruppo (se ci sono), e nella chiamata al learn, inserire stato successivo, cioè le 4 azioni scelte nel timestep
-            # attuale dagli altri membri del gruppo
 
             group_actions = Counter(group_contribution)
             if group_actions[None] >= n - 1:
@@ -460,13 +463,18 @@ class Population:
             "Payoffs": defaultdict(float),
             "Composition Count": defaultdict(int),
             "Composition": defaultdict(float),
-            "Actions per strategy": defaultdict(int)
-        }
+            "Actions per strategy": defaultdict(int),
+            "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions}}
+        
         # Record total strategy payoffs, strategy composition
         for agent in self.agents:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
+
+            # actions transition tracker
+            if len(agent.tracker) >= 2 and agent.tracker[-1] != agent.tracker[-2]:
+                period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
             
         for strategy in self.strategies:
             # Get population composition as a proportion instead of relative size
@@ -638,8 +646,7 @@ class Population:
                 if strategy.split("_")[0] == "XII":
                     # If the strategy is QLearning, create a QLearningAgent
                     agents.append(QLearningAgent(ID=id_counter, strategy=strategy,  
-                                                alpha=self.config.alpha, discount_factor=self.config.discount_factor, 
-                                                epsilon=self.config.exploration_rate))
+                                                alpha=self.config.alpha, discount_factor=self.config.discount_factor))
                 else:
                     agents.append(_Agent(ID=id_counter, strategy=strategy))
                 id_counter += 1
