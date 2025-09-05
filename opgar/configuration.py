@@ -23,6 +23,7 @@ class Configuration:
             discount_factor(float): The discount factor for future rewards in Q-Learning agents.
             exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
             delta(float): Probability of an agent changing its group.
+            minimum_exploration_rate (float): Minimum exploration rate for Q-Learning agents.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -64,7 +65,8 @@ class Configuration:
         "alpha", 
         "discount_factor",
         "exploration_rate",
-        "delta"
+        "delta",
+        "minimum_exploration_rate",
     ]
 
     def __init__(
@@ -86,6 +88,7 @@ class Configuration:
         discount_factor: float,
         exploration_rate: float,
         delta: float,
+        minimum_exploration_rate: float,
     ):
         self._meta_data = {}
 
@@ -223,6 +226,10 @@ class Configuration:
         if exploration_rate < 0 or exploration_rate > 1:
             raise ValueError("Exploration rate epsilon ('{exploration_rate}') must be in [0,1].")
         self.exploration_rate = exploration_rate
+
+        if minimum_exploration_rate < 0 or minimum_exploration_rate > 1:
+            raise ValueError("Minimum exploration rate ('{minimum_exploration_rate}') must be in [0,1].")
+        self.minimum_exploration_rate = minimum_exploration_rate
 
         # ------------------------------------------------------------------------
         # PROBABILITY OF AN AGENT TO CHANGE ITS BELONGING GROUP

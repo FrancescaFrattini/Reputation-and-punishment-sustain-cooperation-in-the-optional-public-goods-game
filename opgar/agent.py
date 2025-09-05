@@ -23,7 +23,7 @@ class _Agent:
             f"Agent {self.ID} created with r={self.reputation} & s={self.strategy}"
         ) """
 
-    def _choose_action(self, average_reputation):
+    def _choose_action(self, average_reputation, epsilon=None):
         """
         _Agent chooses it's action in a public good game given the average reputation of the other players. Choice
         depends on the player's strategy.
@@ -61,20 +61,18 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "q_values", "alpha", "discount_factor", "epsilon",
+    "q_values", "alpha", "discount_factor",
     ]
-
-    minimum_epsilon = 0.01  # minimum exploration probability
 
     ACTIONS = [1, 0, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
 
-    def __init__(self, ID, strategy, alpha=0.1, discount_factor=0.1, epsilon=1.0):
+    def __init__(self, ID, strategy, alpha=0.1, discount_factor=0.1):
         super().__init__(ID, strategy=strategy)
-        self.alpha, self.discount_factor, self.epsilon = alpha, discount_factor, epsilon
+        self.alpha, self.discount_factor = alpha, discount_factor
         self.q_values = np.zeros(len(self.ACTIONS))
 
-    def _choose_action(self, average_reputation):
+    def _choose_action(self, epsilon, average_reputation=None):
         """
         For Q-Learning agents there are two options for action selection:
         1. Epsilon-greedy action selection: with probability epsilon, choose a random action
@@ -83,14 +81,12 @@ class QLearningAgent(_Agent):
 
         Args:
             average_reputation (float): The average reputation in [-1, 1] of the other players in the group
+            epsilon (float): The exploration rate, between 0.05 and 1
             
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
-        if self.epsilon > self.minimum_epsilon:
-            self.epsilon *= 0.99
-
-        if random.random() < self.epsilon:
+        if random.random() < epsilon:
             return random.choice(self.ACTIONS)
         
         return self.ACTIONS[int(np.argmax(self.q_values))]
