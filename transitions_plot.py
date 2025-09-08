@@ -1,0 +1,73 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import glob
+import ast
+
+# --- funzione per caricare e trasformare un singolo file ---
+def load_and_expand(path: str) -> pd.DataFrame:
+    # leggi CSV ignorando NA e forzando i nomi delle colonne
+    df = pd.read_csv(path, index_col=0, keep_default_na=False)
+    df.columns = ["1", "0", "None"]
+
+    # converti stringhe di dict in dict Python
+    df = df.applymap(ast.literal_eval)
+
+    out = pd.DataFrame(index=df.index)
+
+    # mappa transizioni: da → a
+    want = {
+        "1": ["0", "None"],     # Cooperate → Loner, Abstain
+        "0": ["1", "None"],     # Defect → Cooperate, Abstain
+        "None": ["1", "0"],     # Abstain → Cooperate, Defect
+    }
+
+    for frm, tos in want.items():
+        for to in tos:
+            def getter(d):
+                key = int(to) if to.isdigit() else None
+                return d.get(key, 0)
+            out[f"{frm}->{to}"] = df[frm].apply(getter)
+
+    return out
+
+# --- etichette leggibili ---
+labels = {
+    "1->0": "Cooperate → Loner",
+    "1->None": "Cooperate → Abstain",
+    "0->1": "Defect → Cooperate",
+    "0->None": "Defect → Abstain",
+    "None->1": "Abstain → Cooperate",
+    "None->0": "Abstain → Defect",
+}
+
+# --- carica tutti i file ---
+files = glob.glob("csv/j*_transitions_per_timestep_0.csv")
+dfs = [load_and_expand(f) for f in files]
+
+# somma su tutti i file (10 run)
+df_sum = sum(dfs) / len(dfs)
+
+# calcola media mobile
+window = 1
+df_roll = df_sum.rolling(window=window, min_periods=1).mean()
+
+# --- subplot: uno per ogni stato di partenza ---
+fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+
+groups = {
+    "From Cooperate": ["1->0", "1->None"],
+    "From Defect": ["0->1", "0->None"],
+    "From Abstain": ["None->1", "None->0"],
+}
+
+for ax, (title, cols) in zip(axes, groups.items()):
+    for col in cols:
+        ax.plot(df_roll.index, df_roll[col], label=labels[col])
+    ax.set_title(title)
+    ax.set_ylabel(f"Transitions (rolling mean, w={window})")
+    ax.legend()
+
+axes[-1].set_xlabel("Timestep")
+
+plt.tight_layout()
+plt.savefig("transitions_subplot.png")  # salva su file invece di plt.show()
