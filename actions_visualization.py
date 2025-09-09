@@ -17,7 +17,6 @@ df = sum(dfs) / len(dfs)
 df_grouped_mean = df.groupby(df.index // 10).mean()
 df_grouped_std = df.groupby(df.index // 10).std()
 
-x = df_grouped_mean.index * 10  
 
 rename_map = {
     "I_NNN_1": "Unconditionally Cooperate - Cooperate",
@@ -31,25 +30,27 @@ rename_map = {
     "II_NNN_None": "Unconditionally Defect - Abstain"
 }
 
-df_grouped_mean = df_grouped_mean.rename(columns=rename_map)
-df_grouped_std = df_grouped_std.rename(columns=rename_map)
+x = df_grouped_mean.index * 10  
+
+window = 100
+
+#df_grouped_mean = df_grouped_mean.rename(columns=rename_map)
+#df_grouped_std = df_grouped_std.rename(columns=rename_map)
 
 df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
 
-df_linestyle = [':', '-.',  '--']
-
 plt.figure(figsize=(15, 6))
 
-for column, color, linestyle in zip(df_grouped_mean.columns, df_colors, cycle(df_linestyle)):
-    mean = df_grouped_mean[column]
-    std = df_grouped_std[column]
+for col, color in zip(df_grouped_mean.columns, cycle(df_colors)):
+    rolling_mean = df[col].rolling(window=window, min_periods=1).mean()
+    rolling_std = df[col].rolling(window=window, min_periods=1).std()
 
-    plt.plot(x, mean, label=column, linestyle=linestyle, color=color)
-    plt.fill_between(x, mean - std, mean + std, color=color, alpha=0.2)
+    plt.plot(df.index, rolling_mean, label=col, color=color)
+    plt.fill_between(df.index, rolling_mean - rolling_std, rolling_mean + rolling_std, color=color, alpha=0.2)
 
-plt.title('Chosen Actions Over Time (by strategy)')
-plt.xlabel('Episode #')
-plt.ylabel('Agents per action')
+plt.title(f'Chosen Actions Over Time by strategy (window={window})')
+plt.xlabel('Timestep')
+plt.ylabel('# of agents per action (Moving Avg ± Std)')
 plt.legend(title="Action per Strategy", 
            loc='center left',
             bbox_to_anchor=(1.02, 0.5), 
