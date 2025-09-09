@@ -8,20 +8,22 @@ dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = pd.concat(dfs).groupby(level=0).mean()
 
 target_cols = ["Cooperative", "Non-Cooperative", "Loner"]
+
 df = df[[col for col in df.columns if col in target_cols]]
 
-grouped = df.groupby(df.index // 1000).mean()
+window = 500
+
+grouped = df.groupby(df.index // window).mean()
 
 ax = grouped.plot(kind="bar", stacked=True, figsize=(12, 6), colormap="Paired")
 
-ax.set_xlabel("Timesteps (grouped every 1000)")
+ax.set_xlabel(f"Timestep")
 ax.set_ylabel("Actions' Mean Distribution")
-ax.set_title("Actions' Mean Distribution Every 1000 Steps")
-#plt.xticks(rotation=0)
+ax.set_title(f"Actions' Mean Distribution Every {window} Steps")
 ax.set_xticks(range(len(grouped)))
-ax.set_xticklabels([f'{i*1000}-{(i+1)*1000 - 1}' for i in grouped.index], rotation=45)
+ax.set_xticklabels([f'{i*window}-{(i+1)*window - 1}' for i in grouped.index], rotation=45)
 plt.legend(title="Actions", bbox_to_anchor=(1.02, 1), loc='upper left')
 plt.tight_layout()
 plt.grid(True)
 
-plt.savefig('barplot_100_steps_groups.png', dpi=300)
+plt.savefig(f'barplot_{window}_steps_groups.png', dpi=300)
