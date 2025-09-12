@@ -51,6 +51,7 @@ for col, color in zip(df_grouped_mean.columns, cycle(df_colors)):
 plt.title(f'Chosen Actions Over Time by strategy (window={window})')
 plt.xlabel('Timestep')
 plt.ylabel('# of agents per action (Moving Avg ± Std)')
+plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action per Strategy", 
            loc='center left',
             bbox_to_anchor=(1.02, 0.5), 
