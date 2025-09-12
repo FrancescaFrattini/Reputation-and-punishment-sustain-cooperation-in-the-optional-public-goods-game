@@ -13,10 +13,12 @@ This is the source code used to simulate the experiments detailed in Reputation 
 opgar/
 ├── README.md
 ├── opgar
-│   ├── __init__.py
-│   ├── opgar.py
-│   └── utils.py
+├── opgg
+├── package-lock.json
+├── package.json
+├── payoffVisualization.py
 ├── requirements.txt
+├── run.py
 └── setup.py
 ```
 
