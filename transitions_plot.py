@@ -3,20 +3,18 @@ import matplotlib.pyplot as plt
 import glob
 import ast
 
-"""
-This script reads CSV files containing transition data between actions (Cooperate, Defect, Abstain),
-processes the data to extract specific transitions, and plots the number of transitions over time (with a rolling windows
-for a better comprehension of the graph).
-"""
-
+# --- funzione per caricare e trasformare un singolo file ---
 def load_and_expand(path: str) -> pd.DataFrame:
+    # leggi CSV ignorando NA e forzando i nomi delle colonne
     df = pd.read_csv(path, index_col=0, keep_default_na=False)
     df.columns = ["1", "0", "None"]
 
-    df = df.map(ast.literal_eval)
+    # converti stringhe di dict in dict Python
+    df = df.applymap(ast.literal_eval)
 
     out = pd.DataFrame(index=df.index)
 
+    # mappa transizioni: da → a
     want = {
         "1": ["0", "None"],     # Cooperate → Loner, Abstain
         "0": ["1", "None"],     # Defect → Cooperate, Abstain
@@ -42,7 +40,7 @@ transition_colors = {
 }
 
 labels = {
-    "1->0": "Cooperate → Loner",
+    "1->0": "Cooperate → Defect",
     "1->None": "Cooperate → Abstain",
     "0->1": "Defect → Cooperate",
     "0->None": "Defect → Abstain",
@@ -50,14 +48,18 @@ labels = {
     "None->0": "Abstain → Defect",
 }
 
+# --- carica tutti i file ---
 files = glob.glob("csv/j*_transitions_per_timestep_0.csv")
 dfs = [load_and_expand(f) for f in files]
 
+# somma su tutti i file (10 run)
 df_sum = sum(dfs) / len(dfs)
 
+# calcola media mobile
 window = 100
 df_roll = df_sum.rolling(window=window, min_periods=1).mean()
 
+# --- subplot: uno per ogni stato di partenza ---
 fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
 groups = {
@@ -75,7 +77,10 @@ for ax, (title, cols) in zip(axes, groups.items()):
     ax.set_title(title, loc="left")
     ax.set_ylabel(f"# of transitions (rolling mean, w={window})")
     ax.tick_params(labelbottom=True)
+    #ax.set_xlabel("Timestep")
     ax.legend()
 
+#axes[-1].set_xlabel("Timestep")
+
 plt.tight_layout()
-plt.savefig("transitions_subplot.png")  
+plt.savefig("transitions_subplot.png")  # salva su file invece di plt.show()
