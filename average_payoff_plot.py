@@ -37,6 +37,7 @@ for col in df.columns:
 plt.xlabel("Timestep")
 plt.ylabel("Average Payoff (Moving Avg ± Std)")
 plt.title(f"Average Payoffs per Action (window={window})")
+plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action")
 plt.grid(True, linestyle="--", alpha=0.6)
 
