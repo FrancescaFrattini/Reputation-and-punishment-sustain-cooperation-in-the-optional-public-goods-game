@@ -437,8 +437,10 @@ class Population:
                         value = (None, self.config.sigma)
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
+                        counts = group_actions.copy()
+                        counts[contribution] -= 1
                         reward = self.agents[playerID].utility - old_utility
-                        self.agents[playerID].learn(reward = reward, action_taken = contribution)
+                        self.agents[playerID].learn(contributions=counts)
                         
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
