@@ -41,11 +41,11 @@ transition_colors = {
 
 labels = {
     "1->0": "Cooperate → Defect",
-    "1->None": "Cooperate → Abstain",
+    "1->None": "Cooperate → Loner",
     "0->1": "Defect → Cooperate",
-    "0->None": "Defect → Abstain",
-    "None->1": "Abstain → Cooperate",
-    "None->0": "Abstain → Defect",
+    "0->None": "Defect → Loner",
+    "None->1": "Loner → Cooperate",
+    "None->0": "Loner → Defect",
 }
 
 # --- carica tutti i file ---
