@@ -126,6 +126,7 @@ class Population:
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
 
+                logging.info(f'{period_results[t]["Q values"]}')
 
                 """
                 # Evolution
@@ -173,7 +174,11 @@ class Population:
             # Actions transitions
             actions_transitions = pd.concat([pd.Series(period_results[t]["Transitions"]) for t in range(batch_start, batch_end)], axis=1).transpose()
             actions_transitions.index = np.arange(batch_start, batch_end)
-            actions_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+
+            all_rankings = sorted({r for t in range(batch_start, batch_end) for r in period_results[t]["Q values"].index})
+            series_list = [period_results[t]["Q values"].reindex(all_rankings, fill_value=0) for t in range(batch_start, batch_end)]
+            q_values_ranking = pd.DataFrame(series_list)
+            q_values_ranking.astype("int16")
 
             # Punishments
             punishment_tracker = pd.DataFrame.from_dict(punishment_tracker, orient="index", dtype="float16")
@@ -189,6 +194,9 @@ class Population:
                 composition.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
                 reputation_tracker.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
                 transitions.to_csv(f"csv/j{job_id}_transitions{batch_code}.csv")
+                q_values_ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}.csv")
+                actions_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+
 
                 if self.track_strategy_actions:
                     strategy_actions_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
@@ -464,13 +472,17 @@ class Population:
             "Composition Count": defaultdict(int),
             "Composition": defaultdict(float),
             "Actions per strategy": defaultdict(int),
-            "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions}}
+            "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions},
+            "Q values": Counter()
+        }
         
         # Record total strategy payoffs, strategy composition
         for agent in self.agents:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
+            ranking_q_values = tuple(np.argsort(agent.q_values)[::-1])
+            period_result["Q values"][ranking_q_values] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2 and agent.tracker[-1] != agent.tracker[-2]:
@@ -485,7 +497,7 @@ class Population:
         period_result["Average Payoffs"] = {
             k: period_result["Payoffs"][k] / period_result["Actions per strategy"][k]
             for k in period_result["Payoffs"]}
-    
+
         # Flatten period_result from dict-of-dicts to single-level dict
         #   e.g. {"a1": {"a2": []}, "b1"={"b2":[]}} -> {('a1', 'a2'): [], ('b1', 'b2'): []}
         #   This makes it easier to convert it to a MultiIndex Series/DataFrame later when concatenating results over

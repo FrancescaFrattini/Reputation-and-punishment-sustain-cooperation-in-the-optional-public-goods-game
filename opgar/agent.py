@@ -111,6 +111,5 @@ class QLearningAgent(_Agent):
         """
         idx = self.ACTIONS.index(action_taken)
         #as there are no states, we multiply the discount factor by the max Q-value
-        td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]      
         td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]    
         self.q_values[idx] += self.alpha * td_error
