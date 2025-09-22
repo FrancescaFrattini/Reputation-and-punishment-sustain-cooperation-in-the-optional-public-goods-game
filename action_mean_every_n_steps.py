@@ -7,7 +7,7 @@ csv_files = glob.glob("csv/j*_actions_0.csv")
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = pd.concat(dfs).groupby(level=0).mean()
 
-target_cols = ["Cooperative", "Non-Cooperative", "Loner"]
+target_cols = ["Cooperate", "Defect", "Loner"]
 
 df = df[[col for col in df.columns if col in target_cols]]
 
