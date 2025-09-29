@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import glob
 
 label_map= {
-    1: "Cooperate",
-    0: "Defect", 
-    None: "Loner"
+    "1": "Cooperate",
+    "0": "Defect", 
+    "None": "Loner"
 }
 
 csv_files = glob.glob("csv/transitions/j*_transitions_*_*.csv")  
