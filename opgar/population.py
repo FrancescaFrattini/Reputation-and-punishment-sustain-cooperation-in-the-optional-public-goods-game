@@ -55,7 +55,7 @@ class Population:
         # Granular record of actions
         self.track_strategy_actions = True
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, use_group_selection=False, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=1, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
 
@@ -85,8 +85,6 @@ class Population:
             t_step = self.config.t
         batches = list(range(t_start, t_end, t_step)) + [t_end]
 
-        transition_matrix = self._generate_transition_matrix(self.strategies)
-
         self.groups_of_players_IDs = self._get_groups()
 
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
@@ -95,6 +93,12 @@ class Population:
             cooperative_action_tracker = [None] * (batch_end - batch_start)
             reputation_tracker = [None] * (batch_end - batch_start)
             strategy_actions_tracker = {}.fromkeys(range(batch_start, batch_end))
+            transition_matrix = self._generate_transition_matrix(self.actions, 
+                                                                 int((batch_end - batch_start + 1) / transition_matrix_batch))
+
+            logging.info(f"batch start {batch_start} batch end {batch_end}")
+            logging.info(f"transition matrix: {transition_matrix}")
+
 
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
@@ -122,11 +126,9 @@ class Population:
                     self.config.exploration_rate *= 0.9995
 
                 # Neaten results
-                period_results[t] = self._get_period_result()
+                period_results[t] = self._get_period_result(transition_matrix[int(t / transition_matrix_batch)])
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
-
-                logging.info(f'{period_results[t]["Q values"]}')
 
                 """
                 # Evolution
@@ -165,9 +167,11 @@ class Population:
             action_tracker = action_tracker.astype("float16")
             strategy_actions_tracker = pd.DataFrame.from_dict(strategy_actions_tracker, orient="index", dtype="int16")
 
-            # Strategy transitions
-            transitions = [(outerKey, innerKey, innerVal) for outerKey, outerVal in transition_matrix.items() for innerKey, innerVal in outerVal.items() if innerVal != 0]
-            transitions = pd.DataFrame(transitions, columns=["Source", "Destination", "#"])
+            transitions = []
+            # Actions transitions
+            for matrix in transition_matrix:
+                transition = [(str(outerKey), str(innerKey), innerVal) for outerKey, outerVal in matrix.items() for innerKey, innerVal in outerVal.items() if innerVal != 0]
+                transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
             # Reputations
             reputation_tracker = pd.DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             reputation_tracker.astype("float16")
@@ -193,7 +197,8 @@ class Population:
                 avg_payoffs.to_csv(f"csv/j{job_id}_payoffs{batch_code}.csv")
                 composition.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
                 reputation_tracker.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
-                transitions.to_csv(f"csv/j{job_id}_transitions{batch_code}.csv")
+                for batch_num, transition in enumerate(transitions):
+                    transition.to_csv(f"csv/j{job_id}_transitions{batch_code}_{batch_num}.csv")
                 q_values_ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}.csv")
                 actions_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
 
@@ -458,7 +463,7 @@ class Population:
                 )
 
 
-    def _get_period_result(self):
+    def _get_period_result(self, transitions):
         """
         Get period results in a pandas Series.
 
@@ -487,6 +492,7 @@ class Population:
             # actions transition tracker
             if len(agent.tracker) >= 2 and agent.tracker[-1] != agent.tracker[-2]:
                 period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
+                transitions[agent.tracker[-2]][agent.tracker[-1]] += 1
             
         for strategy in self.strategies:
             # Get population composition as a proportion instead of relative size
@@ -690,19 +696,23 @@ class Population:
         return agents_by_strategy
 
     @staticmethod
-    def _generate_transition_matrix(strategies):
+    def _generate_transition_matrix(actions, n_batches):
         """Initialise a strategy transition matrix.
 
         Args:
-            strategies (list): List of strategies in the population
+            actions (list): List of available actions
 
         Returns:
-            matrix (dict): Nested dicts in the form of an KxK matrix where K is the number of strategies.
+            matrix (dict): Nested dicts in the form of an KxK matrix where K is the number of actions.
         """
-        template = {}.fromkeys(strategies, 0)
-        matrix = {}.fromkeys(strategies)
-        for strategy in strategies:
-            matrix[strategy] = copy.deepcopy(template)
+        matrix = []
+        for _ in range (n_batches):
+            template = {}.fromkeys(actions, 0)
+            mat = {}.fromkeys(actions)
+            for action in actions:
+                mat[action] = copy.deepcopy(template)
+            matrix.append(mat)
+
         return matrix
 
     @staticmethod

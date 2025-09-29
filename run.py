@@ -21,9 +21,9 @@ only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-L
 only_qlearner = _Strategy.strategy_groups["Q-Learning no punishment"]
 
 config = Configuration(
-    N = 10, 
+    N = 20, 
     n = 5, 
-    t = 10, 
+    t = 15, 
     r = 3, 
     sigma = 1,
     composition = {}.fromkeys(only_qlearner, 1/len(only_qlearner)), #only Q-Learners
@@ -43,9 +43,9 @@ config = Configuration(
 
 model = Population(config)
 
-for id in range(0, 10):
+for id in range(0, 1):
     seed = random.randint(0, 1000)
     random.seed(seed)
     np.random.seed(seed)
-    results = model.simulate(job_id=id, rng_seed=seed)
+    results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=5)
     print(results)
