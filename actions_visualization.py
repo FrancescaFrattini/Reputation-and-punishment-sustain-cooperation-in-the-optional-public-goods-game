@@ -8,34 +8,26 @@ read .csv files containing actions divided by strategy, compute the mean and std
 and plot the results.
 """
 
+rename_map = {
+    'XII_NNN_1': "Cooperate",
+    'XII_NNN_0': "Defect",
+    'XII_NNN_None': "Loner",
+}
+
 csv_files = glob.glob("csv/j*_granular_actions_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
 df = sum(dfs) / len(dfs)
 
+df.rename(columns=rename_map, inplace=True)
+
 df_grouped_mean = df.groupby(df.index // 10).mean()
 df_grouped_std = df.groupby(df.index // 10).std()
-
-
-rename_map = {
-    "I_NNN_1": "Unconditionally Cooperate - Cooperate",
-    "I_NNN_0": "Unconditionally Cooperate - Defect",
-    "I_NNN_None": "Unconditionally Cooperate - Abstain",
-    "XII_NNN_1": "Q-Learning - Cooperate",
-    "XII_NNN_0": "Q-Learning - Defect",
-    "XII_NNN_None": "Q-Learning - Abstain",
-    "II_NNN_1": "Unconditionally Defect - Cooperate",
-    "II_NNN_0": "Unconditionally Defect - Defect",
-    "II_NNN_None": "Unconditionally Defect - Abstain"
-}
 
 x = df_grouped_mean.index * 10  
 
 window = 100
-
-#df_grouped_mean = df_grouped_mean.rename(columns=rename_map)
-#df_grouped_std = df_grouped_std.rename(columns=rename_map)
 
 df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
 

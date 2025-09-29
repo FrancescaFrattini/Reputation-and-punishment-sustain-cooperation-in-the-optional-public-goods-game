@@ -436,13 +436,10 @@ class Population:
                     if contribution == 1: #payoff for cooperators
                         self.agents[playerID].utility -= 1 # contribution given by the player
                         self.agents[playerID].utility += payoff_per_player
-                        value = (1, payoff_per_player)
                     elif contribution == 0: #payoff for defectors
                         self.agents[playerID].utility += payoff_per_player
-                        value = (0, payoff_per_player)
                     else: #Loner
                         self.agents[playerID].utility += self.config.sigma
-                        value = (None, self.config.sigma)
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         counts = group_actions.copy()
