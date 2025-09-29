@@ -9,14 +9,14 @@ label_map= {
     "None": "Loner"
 }
 
-csv_files = glob.glob("csv/transitions/j*_transitions_*_0.csv")  
+csv_files = glob.glob("csv/transitions/j*_transitions_*_*.csv")  
 dfs = [pd.read_csv(file) for file in csv_files]
 
 base = dfs[0][["Source", "Destination"]].copy()
 base["#"] = pd.concat([df.iloc[:, -1] for df in dfs], axis=1).mean(axis=1, numeric_only=True)
 df = base[["Source", "Destination", "#"]]
-df["Source"] = df["Source"].map(label_map)
-df["Destination"] = df["Destination"].map(label_map)
+df["Source"] = df["Source"].fillna("None").astype(str).map(label_map)
+df["Destination"] = df["Destination"].fillna("None").astype(str).map(label_map)
 
 transition_matrix = df.pivot_table(
     index="Source",
