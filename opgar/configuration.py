@@ -195,8 +195,8 @@ class Configuration:
         # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
         # ----------------------------------------------------------------------
-        if omega < 1:
-            raise ValueError("Probability of further interactions omega ('{omega}') must be within [1,inf).")
+        if omega < 1 or omega >= n:
+            raise ValueError("Probability of further interactions omega ('{omega}') must be within [1,n).")
         self.omega = omega
 
         # ----------------------------------------------------------------------

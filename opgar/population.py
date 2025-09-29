@@ -441,10 +441,13 @@ class Population:
                     if contribution == 1: #payoff for cooperators
                         self.agents[playerID].utility -= 1 # contribution given by the player
                         self.agents[playerID].utility += payoff_per_player
+                        value = (1, payoff_per_player)
                     elif contribution == 0: #payoff for defectors
                         self.agents[playerID].utility += payoff_per_player
+                        value = (0, payoff_per_player)
                     else: #Loner
                         self.agents[playerID].utility += self.config.sigma
+                        value = (None, self.config.sigma)
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         reward = self.agents[playerID].utility - old_utility
@@ -491,7 +494,7 @@ class Population:
                 transitions[agent.tracker[-2]][agent.tracker[-1]] += 1
                 if agent.tracker[-1] != agent.tracker[-2]:
                     period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
-
+                    
         for strategy in self.strategies:
             # Get population composition as a proportion instead of relative size
             period_result["Composition"][strategy] = (
