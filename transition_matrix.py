@@ -9,7 +9,7 @@ label_map= {
     "None": "Loner"
 }
 
-csv_files = glob.glob("csv/j*_transitions_*.csv")  
+csv_files = glob.glob("csv/transitions/j*_transitions_*_0.csv")  
 dfs = [pd.read_csv(file) for file in csv_files]
 
 base = dfs[0][["Source", "Destination"]].copy()

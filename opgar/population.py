@@ -150,6 +150,7 @@ class Population:
 
             os.makedirs(os.path.dirname("csv/"), exist_ok=True)
             os.makedirs(os.path.dirname("json/"), exist_ok=True)
+            os.makedirs(os.path.dirname("csv/transitions/"), exist_ok=True)
 
             # Average Payoffs
             #avg_payoffs = pd.DataFrame([period_results[t]["Average Payoffs"] for t in range(batch_start, batch_end)])
@@ -182,7 +183,6 @@ class Population:
             all_rankings = sorted({r for t in range(batch_start, batch_end) for r in period_results[t]["Q values"].index})
             series_list = [period_results[t]["Q values"].reindex(all_rankings, fill_value=0) for t in range(batch_start, batch_end)]
             q_values_ranking = pd.DataFrame(series_list)
-            q_values_ranking.astype("int16")
 
             # Punishments
             punishment_tracker = pd.DataFrame.from_dict(punishment_tracker, orient="index", dtype="float16")
@@ -198,7 +198,7 @@ class Population:
                 composition.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
                 reputation_tracker.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
                 for batch_num, transition in enumerate(transitions):
-                    transition.to_csv(f"csv/j{job_id}_transitions{batch_code}_{batch_num}.csv")
+                    transition.to_csv(f"csv/transitions/j{job_id}_transitions{batch_code}_{batch_num}.csv")
                 q_values_ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}.csv")
                 actions_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
 
@@ -486,14 +486,15 @@ class Population:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            ranking_q_values = tuple(np.argsort(agent.q_values)[::-1])
+            ranking_q_values = tuple(int(x) for x in np.argsort(agent.q_values)[::-1])
             period_result["Q values"][ranking_q_values] += 1
 
             # actions transition tracker
-            if len(agent.tracker) >= 2 and agent.tracker[-1] != agent.tracker[-2]:
-                period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
+            if len(agent.tracker) >= 2:
                 transitions[agent.tracker[-2]][agent.tracker[-1]] += 1
-            
+                if agent.tracker[-1] != agent.tracker[-2]:
+                    period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
+                    
         for strategy in self.strategies:
             # Get population composition as a proportion instead of relative size
             period_result["Composition"][strategy] = (
