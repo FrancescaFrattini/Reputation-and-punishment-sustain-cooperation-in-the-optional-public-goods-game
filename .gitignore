@@ -39,6 +39,7 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
+*.png
 
 # IDE e editor vari
 .vscode/

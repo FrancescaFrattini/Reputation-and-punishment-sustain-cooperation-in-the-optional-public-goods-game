@@ -475,9 +475,11 @@ class Population:
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
 
             # actions transition tracker
-            if len(agent.tracker) >= 2 and agent.tracker[-1] != agent.tracker[-2]:
-                period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
-            
+            if len(agent.tracker) >= 2:
+                transitions[agent.tracker[-2]][agent.tracker[-1]] += 1
+                if agent.tracker[-1] != agent.tracker[-2]:
+                    period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
+                    
         for strategy in self.strategies:
             # Get population composition as a proportion instead of relative size
             period_result["Composition"][strategy] = (
