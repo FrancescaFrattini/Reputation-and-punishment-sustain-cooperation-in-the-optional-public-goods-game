@@ -18,10 +18,10 @@ class _Agent:
         self.utility = 1
         self.reputation = 1
         self.tracker = deque(maxlen=n)
-        """
-        logging.info(
+    
+        logging.debug(
             f"Agent {self.ID} created with r={self.reputation} & s={self.strategy}"
-        ) """
+        ) 
 
     def _choose_action(self, average_reputation, epsilon=None):
         """
