@@ -4,7 +4,6 @@ import logging
 from collections import Counter, defaultdict
 from itertools import product
 import os
-import random
 from time import time
 import numpy as np
 import pandas as pd
@@ -95,10 +94,6 @@ class Population:
             strategy_actions_tracker = {}.fromkeys(range(batch_start, batch_end))
             transition_matrix = self._generate_transition_matrix(self.actions, 
                                                                  int((batch_end - batch_start + 1) / transition_matrix_batch))
-
-            logging.info(f"batch start {batch_start} batch end {batch_end}")
-            logging.info(f"transition matrix: {transition_matrix}")
-
 
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
@@ -478,14 +473,16 @@ class Population:
             "Composition Count": defaultdict(int),
             "Composition": defaultdict(float),
             "Actions per strategy": defaultdict(int),
-            "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions}}
+            "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions},
+            "Q values": Counter()
+            }
         
         # Record total strategy payoffs, strategy composition
         for agent in self.agents:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            ranking_q_values = tuple(int(x) for x in np.argsort(agent.q_values)[::-1])
+            ranking_q_values = tuple(int(x) for x in np.argsort(agent.getLastRow())[::-1])
             period_result["Q values"][ranking_q_values] += 1
 
             # actions transition tracker
