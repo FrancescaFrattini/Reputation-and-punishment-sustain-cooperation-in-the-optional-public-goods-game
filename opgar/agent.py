@@ -65,7 +65,7 @@ class QLearningAgent(_Agent):
     "q_values", "alpha", "discount_factor", "q_table", "pos", "full","n"
     ]
 
-    ACTIONS = [1, 0, None]  # Actions: cooperate (1), defect (0), withdraw (None)
+    ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
     def _action_to_index(self, action):
         if action is None:  
@@ -100,31 +100,19 @@ class QLearningAgent(_Agent):
         
         sums = np.sum(self.q_table, axis=0)   
         best_action_index = np.argmax(sums)
+        logging.info(f"Agent {self.ID} choosing best action with Q-values sums: {self.ACTIONS[best_action_index]}")
         return self.ACTIONS[best_action_index]
-    """
-    def learn(self, reward, action_taken):
-        
-        Updates the agent's Q-values based on the action taken and the received reward.
-            The Q-value for the action taken is updated using the Q-learning formula:
-            Q(a) = Q(a) + α * (reward + γ * max(Q(a')) - Q(a))
-            where:
-            - Q(a) is the current Q-value for the action taken  
-            - α is the learning rate
-            - reward is the immediate reward received for the action taken
-            - γ is the discount factor
-            - max(Q(a')) is the maximum Q-value for the available actions, as there are no states here   
+    
+    """        
+        Updates the agent's Q-values based on the count of actions taken from other group's members.
+        At each time step, the agent observes the contributions of other agents in the group for each possible action (1, 0, None).
+        The contributions are stored in a circular buffer (self.q_table) of size n, where n is the number of time steps to remember.
+        After each round, the agent updates its Q-values based on the observed contributions.
         Args:
-            reward (float): The reward received for the action taken
-            action_taken (str): The action taken by the agent, one of [1, 0, None]
-
+            contributions (dict): A dictionary with keys as actions (1, 0, None) and values as the count of agents who chose 
+            that action.
         Returns: 
             None      
-        
-        idx = self.ACTIONS.index(action_taken)
-        #as there are no states, we multiply the discount factor by the max Q-value
-        td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]      
-        td_error = reward  + (self.discount_factor*np.max(self.q_values)) - self.q_values[idx]    
-        self.q_values[idx] += self.alpha * td_error
     """
     def learn(self, contributions):
         for action in self.ACTIONS:
@@ -132,16 +120,26 @@ class QLearningAgent(_Agent):
         self.pos = (self.pos + 1) % self.n
         if self.pos == 0:
             self.full = True
+        logging.info(f"group's contribution: {contributions}")
+        logging.info(f"updated Q-Table for agent {self.ID}:\n {self.q_table}")
+        logging.info(f"q-table position index {self.pos}")
 
     '''
         Insert in the circular buffer last agent's contribution, overriding the oldest one.
+        Args:
+            action (str): one from [1, 0, None]
+            value (int): Number of group's agents who chose that action
+        Returns:
+            None
     '''
     def push(self, action, value: int):
         idx = self._action_to_index(action)
         self.q_table[self.pos, idx] = value
 
     '''
-      Return all elements in the circular buffer in correct order.
+      Return all elements of the circular buffer in the last row
+      Returns:
+        Array of shape (1, 3) containing the last contribution for each action.
     '''
     def getLastRow(self):
         if self.pos == 0 and not self.full:
@@ -150,7 +148,11 @@ class QLearningAgent(_Agent):
         return self.q_table[last_index]
     
     """
-    Return the last element inserted in the circular buffer.
+    Return a single cell of the circular buffer for the given action in the last row.
+    Args:
+        action (str): one from [1, 0, None]
+    Return:
+        Int value of the last contribution for the given action.
     """
     def getLast(self, action):
         if self.pos == 0 and not self.full:
