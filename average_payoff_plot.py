@@ -1,13 +1,15 @@
 import glob
+import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
-#df = pd.read_csv("csv/j0_payoffs_0.csv")
-
+with open("json/j0_config.json", "r") as f:
+    config = json.load(f)
+omega = config["omega"]
 
 csv_files = glob.glob("csv/j*_payoffs_0.csv")
 
-dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
+dfs = [pd.read_csv(file, index_col=0) / omega for file in csv_files]
 
 df = sum(dfs) / len(dfs)
 
