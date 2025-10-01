@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import glob
 
-csv_files = glob.glob("csv/j*_q_values_rankings_0.csv")
+csv_files = glob.glob("csv/j*_q_values_rankings_*_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
@@ -24,7 +24,7 @@ df_ma = df.rolling(window=window, min_periods=1).mean()
 
 plt.figure(figsize=(14, 8))
 for i, col in enumerate(new_col_names.values()):
-    plt.plot(df_ma.index, df_ma[col], label=col, linewidth=2, marker='o')
+    plt.plot(df_ma.index, df_ma[col], label=col, linewidth=2)
 
 
 plt.xlabel("# Timestep")

@@ -1,15 +1,11 @@
 import glob
-import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
-with open("json/j0_config.json", "r") as f:
-    config = json.load(f)
-omega = config["omega"]
 
-csv_files = glob.glob("csv/j*_payoffs_0.csv")
+csv_files = glob.glob("csv/j*_payoffs_*_0.csv")
 
-dfs = [pd.read_csv(file, index_col=0) / omega for file in csv_files]
+dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
 df = sum(dfs) / len(dfs)
 
@@ -19,7 +15,7 @@ rename_map = {
     "XII_NNN_1": "Q-Learner - Cooperator"
 }
 
-window = 100
+window = 2
 
 plt.figure(figsize=(10, 6))
 

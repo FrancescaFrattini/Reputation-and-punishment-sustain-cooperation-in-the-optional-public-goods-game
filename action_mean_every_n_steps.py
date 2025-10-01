@@ -7,11 +7,17 @@ csv_files = glob.glob("csv/j*_actions_0.csv")
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = pd.concat(dfs).groupby(level=0).mean()
 
-target_cols = ["Cooperate", "Defect", "Loner"]
+target_cols = ["Cooperative", "Non-Cooperative", "Loner"]
+rename_map = {
+    "Cooperative": "Cooperate",
+    "Non-Cooperative": "Defect",
+    "Loner" : "Loner"
+}
 
 df = df[[col for col in df.columns if col in target_cols]]
+df.rename(columns=rename_map, inplace=True)
 
-window = 500
+window = 1
 
 grouped = df.groupby(df.index // window).mean()
 
