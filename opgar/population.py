@@ -125,8 +125,6 @@ class Population:
                 punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                 strategy_actions_tracker[t] = all_action_tracker
 
-                logging.info(f'{period_results[t]["Q values"]}')
-
                 """
                 # Evolution
                 if use_group_selection:

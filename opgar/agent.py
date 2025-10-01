@@ -100,7 +100,6 @@ class QLearningAgent(_Agent):
         
         sums = np.sum(self.q_table, axis=0)   
         best_action_index = np.argmax(sums)
-        logging.info(f"Agent {self.ID} choosing best action with Q-values sums: {self.ACTIONS[best_action_index]}")
         return self.ACTIONS[best_action_index]
     
     """        
@@ -120,9 +119,6 @@ class QLearningAgent(_Agent):
         self.pos = (self.pos + 1) % self.n
         if self.pos == 0:
             self.full = True
-        logging.info(f"group's contribution: {contributions}")
-        logging.info(f"updated Q-Table for agent {self.ID}:\n {self.q_table}")
-        logging.info(f"q-table position index {self.pos}")
 
     '''
         Insert in the circular buffer last agent's contribution, overriding the oldest one.
