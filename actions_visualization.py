@@ -15,7 +15,7 @@ rename_map = {
 }
 
 
-csv_files = glob.glob("csv/j*_granular_actions_*_1.csv")
+csv_files = glob.glob("csv/j*_granular_actions_*_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
@@ -23,18 +23,13 @@ df = sum(dfs) / len(dfs)
 
 df.rename(columns=rename_map, inplace=True)
 
-df_grouped_mean = df.groupby(df.index // 10).mean()
-df_grouped_std = df.groupby(df.index // 10).std()
-
-x = df_grouped_mean.index * 10  
-
 window = 1
 
 df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
 
 plt.figure(figsize=(15, 6))
 
-for col, color in zip(df_grouped_mean.columns, cycle(df_colors)):
+for col, color in zip(df.columns, cycle(df_colors)):
     rolling_mean = df[col].rolling(window=window, min_periods=1).mean()
     rolling_std = df[col].rolling(window=window, min_periods=1).std()
 
