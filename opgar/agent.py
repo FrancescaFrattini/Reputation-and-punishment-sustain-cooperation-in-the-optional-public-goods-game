@@ -138,8 +138,6 @@ class QLearningAgent(_Agent):
         Array of shape (1, 3) containing the last contribution for each action.
     '''
     def getLastRow(self):
-        if self.pos == 0 and not self.full:
-            return None
         last_index = (self.pos - 1) % self.n
         return self.q_table[last_index]
     
