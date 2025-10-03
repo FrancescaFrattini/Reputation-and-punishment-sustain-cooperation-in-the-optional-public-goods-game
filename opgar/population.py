@@ -120,18 +120,18 @@ class Population:
                     punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
                     strategy_actions_tracker[t][n] = all_action_tracker
 
-                """
-                # Evolution
-                if use_group_selection:
-                    self._evolve_group_selection(groups_of_players_IDs, transition_matrix)
-                    self._mutate()
-                """
+                    """
+                    # Evolution
+                    if use_group_selection:
+                        self._evolve_group_selection(groups_of_players_IDs, transition_matrix)
+                        self._mutate()
+                    """
                 
-                # Gather extra information and reset
-                period_results[t][n]["Fitness"] = self._get_population_fitness(period_results[t][n])
-                cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
-                reputation_tracker[t % t_step] = self._record_reputations()
-                self._reset_population()
+                    # Gather extra information and reset
+                    period_results[t][n]["Fitness"] = self._get_population_fitness(period_results[t][n])
+                    cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
+                    reputation_tracker[t % t_step] = self._record_reputations()
+                    self._reset_population()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
