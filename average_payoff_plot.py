@@ -32,7 +32,7 @@ for col in df.columns:
         alpha=0.2
     )
 
-plt.xlabel("Timestep")
+plt.xlabel("Round")
 plt.ylabel("Average Payoff (Moving Avg ± Std)")
 plt.title(f"Average Payoffs per Action (window={window})")
 plt.autoscale(enable=True, axis='x', tight=True)

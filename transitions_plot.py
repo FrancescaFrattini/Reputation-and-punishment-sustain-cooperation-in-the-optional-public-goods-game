@@ -60,7 +60,7 @@ groups = {
     "From Abstain": ["None->1", "None->0"],
 }
 
-fig.supxlabel("Timestep")
+fig.supxlabel("Round")
 
 for ax, (title, cols) in zip(axes, groups.items()):
     for col in cols:

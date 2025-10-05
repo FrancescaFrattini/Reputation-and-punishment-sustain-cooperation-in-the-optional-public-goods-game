@@ -37,7 +37,7 @@ for col, color in zip(df.columns, cycle(df_colors)):
     plt.fill_between(df.index, rolling_mean - rolling_std, rolling_mean + rolling_std, color=color, alpha=0.2)
 
 plt.title(f'Chosen Actions Over Time by strategy (window={window})')
-plt.xlabel('Timestep')
+plt.xlabel('Round')
 plt.ylabel('# of agents per action (Moving Avg ± Std)')
 plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action per Strategy", 
