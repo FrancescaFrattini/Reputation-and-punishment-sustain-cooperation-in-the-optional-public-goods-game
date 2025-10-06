@@ -13,7 +13,7 @@ from .norm import _Norm
 from .strategy import _Strategy
 from .agent import _Agent, QLearningAgent
 from .utils import deprecated, Utils
-from .strategy import _Strategy
+from .generator import Generator
 
 class Population:
     """Simulate a population of agents playing public goods games.
@@ -45,7 +45,7 @@ class Population:
 
         # Generate agents with strategy distribution
         self.agents = self._generate_population(config.N, config.composition)
-        self.agents_by_strategy = self._generate_population_by_strategy(
+        self.agents_by_strategy = Generator._generate_population_by_strategy(
             self.agents, self.strategies
         )
         self.social_norm_type = config.social_norm
@@ -92,7 +92,7 @@ class Population:
             cooperative_action_tracker = [None] * (batch_end - batch_start)
             reputation_tracker = [None] * (batch_end - batch_start)
             strategy_actions_tracker = {t: {}.fromkeys(range(self.config.omega)) for t in range(batch_start, batch_end)}
-            transition_matrix = self._generate_transition_matrix(self.actions, 
+            transition_matrix = Generator._generate_transition_matrix(self.actions, 
                                                                  int((batch_end - batch_start + 1) / transition_matrix_batch))
 
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
@@ -611,6 +611,38 @@ class Population:
             f"Agent {agent.ID} switched from {old_strategy} to {new_strategy}."
         )
         
+    def _generate_population(self, N, composition):
+        """
+        Create the population of agents with the required distribution of strategies.
+
+        Given some proportion of strategies within the population as a dictionary of strategy: 'proportion of 1' pairs,
+        convert the proportions to numbers of agents by multiplying by the size of the population. These may or may not
+        be non-integers, so we use the Largest Remainder method to assign the last few agents.
+
+        Args:
+            N (int): Size of the network
+            composition (dict): Dictionary of strategies and their proportions within the population
+
+        Returns:
+            List of agents with a strategy distribution equal to that of composition
+        """
+
+        # Partition N players into fractions of 1 as accurately as possible
+        proportions = Generator._distribute_over_N(composition, N)
+
+        agents = []
+        id_counter = 0
+        for strategy, count in proportions.items():
+            for _ in range(int(count)):
+                if strategy.split("_")[0] == "XII":
+                    # If the strategy is QLearning, create a QLearningAgent
+                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy,  
+                                                alpha=self.config.alpha, discount_factor=self.config.discount_factor))
+                else:
+                    agents.append(_Agent(ID=id_counter, strategy=strategy))
+                id_counter += 1
+
+        return agents    
 
     def _reset_population(self):
         """
@@ -629,45 +661,13 @@ class Population:
             agent.utility = 1
             # agent.reputation = 1
 
+    '''
     @staticmethod
     def _log_series(name, series):
         """
         Given a pandas.Series, return a one-line string representation for logging.
         """
         return f"{name}: {', '.join([k[1] + '->' + str(round(v, 4)) for k, v in series.items()])}"
-
-    def _generate_population(self, N, composition):
-        """
-        Create the population of agents with the required distribution of strategies.
-
-        Given some proportion of strategies within the population as a dictionary of strategy: 'proportion of 1' pairs,
-        convert the proportions to numbers of agents by multiplying by the size of the population. These may or may not
-        be non-integers, so we use the Largest Remainder method to assign the last few agents.
-
-        Args:
-            N (int): Size of the network
-            composition (dict): Dictionary of strategies and their proportions within the population
-
-        Returns:
-            List of agents with a strategy distribution equal to that of composition
-        """
-
-        # Partition N players into fractions of 1 as accurately as possible
-        proportions = Population._distribute_over_N(composition, N)
-
-        agents = []
-        id_counter = 0
-        for strategy, count in proportions.items():
-            for _ in range(int(count)):
-                if strategy.split("_")[0] == "XII":
-                    # If the strategy is QLearning, create a QLearningAgent
-                    agents.append(QLearningAgent(ID=id_counter, strategy=strategy,  
-                                                alpha=self.config.alpha, discount_factor=self.config.discount_factor))
-                else:
-                    agents.append(_Agent(ID=id_counter, strategy=strategy))
-                id_counter += 1
-
-        return agents
 
 
     @staticmethod
@@ -757,6 +757,8 @@ class Population:
             temp_dist[new_strat] += 1
             remaining -= 1
         return temp_dist
+
+    '''
 
     def __str__(self):
         s = []
