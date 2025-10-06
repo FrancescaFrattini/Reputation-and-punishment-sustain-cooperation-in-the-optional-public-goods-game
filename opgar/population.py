@@ -205,7 +205,7 @@ class Population:
                         strategy_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}_{batch_num}.csv")
 
             processing_end = time()
-            logging.info(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
+            logging.info(f"---> Export Batch Data ---> {processing_end-processing_start} seconds elapsed")
 
         if not disable_export:
             with open(f"json/j{job_id}_config.json", "w") as f:
