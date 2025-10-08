@@ -54,8 +54,9 @@ class Population:
 
         # Granular record of actions
         self.track_strategy_actions = True
+        self.exploration_rate = 0
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=1, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=1, record_actions_by_strategy=True, reset_epsilon=None):
         """
         Simulate multiple rounds of public goods games
 
@@ -87,6 +88,8 @@ class Population:
 
         self.groups_of_players_IDs = self._get_groups()
 
+        self.exploration_rate = config.exploration_rate
+
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
             period_results = {}.fromkeys(range(batch_start, batch_end))
             punishment_tracker = {}.fromkeys(range(batch_start, batch_end))
@@ -102,6 +105,10 @@ class Population:
 
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
+
+                # Reset exploration rate
+                if self.reset_epsilon is not None and t % self.reset_epsilon == 0:
+                    self.epsilon = self.config.epsilon
 
                 # group mixing at each timestep
                 if np.random.random() < self.config.delta:
@@ -122,8 +129,8 @@ class Population:
                         self._update_reputations()
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
 
-                if self.config.exploration_rate > self.config.minimum_exploration_rate:
-                    self.config.exploration_rate *= 0.9995
+                if self.exploration_rate > self.config.minimum_exploration_rate:
+                    self.exploration_rate *= 0.9995
 
                 # Neaten results
                 period_results[t] = self._get_period_result(transition_matrix[int(t / transition_matrix_batch)])
@@ -441,10 +448,13 @@ class Population:
                     if contribution == 1: #payoff for cooperators
                         self.agents[playerID].utility -= 1 # contribution given by the player
                         self.agents[playerID].utility += payoff_per_player
+                        value = (1, payoff_per_player)
                     elif contribution == 0: #payoff for defectors
                         self.agents[playerID].utility += payoff_per_player
+                        value = (0, payoff_per_player)
                     else: #Loner
                         self.agents[playerID].utility += self.config.sigma
+                        value = (None, self.config.sigma)
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         reward = self.agents[playerID].utility - old_utility
