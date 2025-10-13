@@ -1,3 +1,4 @@
+import itertools
 import logging
 import random
 
@@ -62,47 +63,46 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "q_values", "alpha", "discount_factor", "q_table", "pos", "full","n"
+    "alpha", "discount_factor", "q_table", "current_state","n", "state_to_idx"
     ]
 
     ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
-    def _action_to_index(self, action):
-        if action is None:  
-            return 2
-        else:
-            return action
-
-
-    def __init__(self, ID, strategy, alpha=0.1, discount_factor=0.1, n=10):
+    def __init__(self, ID, strategy,  group_size, alpha=0.1, discount_factor=0.1, n=10):
         super().__init__(ID, strategy=strategy, n=n)
         self.alpha, self.discount_factor = alpha, discount_factor
-        self.q_table = np.zeros((n, len(self.ACTIONS)), dtype=np.int16)
-        self.pos = 0
-        self.full = False
+        combinations = [
+            (d, c, l)
+            for d in range(group_size)
+            for c in range(group_size)
+            for l in range(group_size)
+            if d + c + l == group_size - 1
+        ]
+        self.state_to_idx = {state: i for i, state in enumerate(combinations)}
+
+        self.q_table = np.zeros((len(combinations), len(self.ACTIONS)), dtype=float)
+        self.current_state = None
 
     def _choose_action(self, epsilon, average_reputation=None):
         """
         For Q-Learning agents there are two options for action selection:
         1. Epsilon-greedy action selection: with probability epsilon, or if at the first step, choose a random action
             Epsilon value decays at every time step of a factor of 0.99, ensuring exploration
-        2. Greedy action selection: choose the action with the highest Q-value
+        2. Greedy action selection: choose the action with the highest Q-value for the current state
 
         Args:
-            average_reputation (float): The average reputation in [-1, 1] of the other players in the group
             epsilon (float): The exploration rate, between 0.05 and 1
             
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
-        if random.random() < epsilon or not np.any(self.q_table):
+        if random.random() < epsilon or not np.any(self.q_table[self.current_state]):
             return random.choice(self.ACTIONS)
-        
-        sums = np.sum(self.q_table, axis=0)   
-        best_action_index = np.argmax(sums)
+        best_action_index = np.argmax(self.q_table[self.current_state])
         return self.ACTIONS[best_action_index]
     
-    """        
+    def learn(self, reward, contributions):
+        """        
         Updates the agent's Q-values based on the count of actions taken from other group's members.
         At each time step, the agent observes the contributions of other agents in the group for each possible action (1, 0, None).
         The contributions are stored in a circular buffer (self.q_table) of size n, where n is the number of time steps to remember.
@@ -110,47 +110,39 @@ class QLearningAgent(_Agent):
         Args:
             contributions (dict): A dictionary with keys as actions (1, 0, None) and values as the count of agents who chose 
             that action.
-        Returns: 
-            None      
+            reward (float): The reward received after taking the last action.    
     """
-    def learn(self, contributions):
-        for action in self.ACTIONS:
-            self.push(action, contributions[action])
-        self.pos = (self.pos + 1) % self.n
-        if self.pos == 0:
-            self.full = True
+        triple = self._from_counter_to_tuple(contributions)
+        idx = self.state_to_idx[triple]
+        
+        action_idx = self._action_to_index(self.tracker[-1])
 
-    '''
-        Insert in the circular buffer last agent's contribution, overriding the oldest one.
+        if self.current_state is not None:
+            td_error = reward  + (self.discount_factor*np.max(self.q_table[idx])) - self.q_table[self.current_state][action_idx]
+            self.q_table[self.current_state][action_idx] += self.alpha * td_error
+
+        self.current_state = idx
+
+    def _from_counter_to_tuple(self, counter: Counter):
+        """
+        Converts a Counter with keys {0, 1, None} to a tuple (count_0, count_1, count_None).
         Args:
-            action (str): one from [1, 0, None]
-            value (int): Number of group's agents who chose that action
+            counter (Counter): A Counter with keys {0, 1, None}, where None represents action 2.
         Returns:
-            None
-    '''
-    def push(self, action, value: int):
-        idx = self._action_to_index(action)
-        self.q_table[self.pos, idx] = value
+            tuple: A tuple (count_0, count_1, count_2) representing the counts of actions 0, 1, and None.
+    """
+        new_counter = {(2 if k is None else k): v for k, v in counter.items()}
+        return tuple([new_counter.get(a, 0) for a in [0, 1, 2]])
 
-    '''
-      Return all elements of the circular buffer in the last row
-      Returns:
-        Array of shape (1, 3) containing the last contribution for each action.
-    '''
-    def getLastRow(self):
-        last_index = (self.pos - 1) % self.n
-        return self.q_table[last_index]
-    
-    """
-    Return a single cell of the circular buffer for the given action in the last row.
-    Args:
-        action (str): one from [1, 0, None]
-    Return:
-        Int value of the last contribution for the given action.
-    """
-    def getLast(self, action):
-        if self.pos == 0 and not self.full:
-            return None
-        last_index = (self.pos - 1) % self.n
-        idx = self.action_to_index(action)
-        return self.q_table[last_index, idx]
+    def _action_to_index(self, action):
+            """
+            Converts action (0, 1, None) to index (0, 1, 2) for Q-table access.
+            Args:
+                action (int or None): The action taken by the agent (0, 1, or None).
+            Returns:
+                int: The corresponding index in the Q-table (0 for action 0, 1 for action 1, 2 for action None).    
+        """
+            if action is None:  
+                return 2
+            else:
+                return action
