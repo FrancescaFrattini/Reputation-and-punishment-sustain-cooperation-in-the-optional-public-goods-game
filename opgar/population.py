@@ -162,15 +162,8 @@ class Population:
                 transitions.index = np.arange(self.config.omega)
                 actions_transitions.append(transitions)
                 states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
-                #ranking = ([{state: dict(period_results[t][n]["Q values"].get(state, {}))
-                #    for state in sorted({s for n2 in range(self.config.omega) for s in period_results[t][n2]["Q values"]})}
-                #    for n in range(self.config.omega)
-                #])
                 ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
                 ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
-                #(period_results[t][n]["Q values"].reindex(states, fill_value=0) for n in range (self.config.omega))
-                #all_rankings = sorted({r for n in range(self.config.omega) for r in period_results[t][n]["Q values"].index})
-                #ranking = pd.DataFrame([period_results[t][n]["Q values"].reindex(all_rankings, fill_value=0) for n in range(self.config.omega)])
                 q_values_ranking.append(ranking)
 
             # Actions

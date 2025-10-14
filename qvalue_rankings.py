@@ -1,37 +1,119 @@
+import glob
+import ast
 import pandas as pd
 import matplotlib.pyplot as plt
-import glob
 
-csv_files = glob.glob("csv/j*_q_values_rankings_*_0.csv")
+files = sorted(glob.glob("csv/j*_q_values_rankings_0_0.csv"))
 
-dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
+window = 1  
 
-df = sum(dfs) / len(dfs)
+action_labels = {0: "Defect", 1: "Cooperate", 2: "Loner"}
+action_colors = {0: "tab:blue", 1: "tab:green", 2: "tab:orange"}
 
-action_map = {0: "Cooperate", 1: "Defect", 2: "Loner"}
+def parse_cell_to_dict(x):
+    try:
+        d = ast.literal_eval(str(x))
+    except Exception:
+        d = {}
+    return {0: d.get(0, 0), 1: d.get(1, 0), 2: d.get(2, 0)}
 
-def rename_ranking(ranking_str):
-    ranking = tuple(int(x) for x in ranking_str.strip("()").split(","))
-    return " > ".join([action_map[i] for i in ranking])
+def load_and_parse_csv(path):
+    df = pd.read_csv(path, index_col=0, keep_default_na=False)
+    return df.applymap(parse_cell_to_dict)
 
-ranking_cols = df.columns.tolist()
-new_col_names = {col: rename_ranking(col) for col in ranking_cols}
-df = df.rename(columns=new_col_names)
+def parse_triple(colname):
+    try:
+        t = ast.literal_eval(colname)
+        return tuple(int(x) for x in t)
+    except Exception:
+        s = colname.strip().lstrip("(").rstrip(")").replace(" ", "")
+        parts = s.split(",")
+        if len(parts) == 3:
+            return (int(parts[0]), int(parts[1]), int(parts[2]))
+        raise ValueError(f"Cannot parse column: {colname}")
 
-window = 1
+dfs = [load_and_parse_csv(f) for f in files]
 
-df_ma = df.rolling(window=window, min_periods=1).mean()
+shapes = {df.shape for df in dfs}
 
-plt.figure(figsize=(14, 8))
-for i, col in enumerate(new_col_names.values()):
-    plt.plot(df_ma.index, df_ma[col], label=col, linewidth=2)
+nfiles = len(dfs)
+rows = dfs[0].index
+cols = dfs[0].columns
+
+df_sum = dfs[0].copy()
+for r in rows:
+    for c in cols:
+        df_sum.at[r, c] = {0: 0, 1: 0, 2: 0}
+
+for df in dfs:
+    for r in rows:
+        for c in cols:
+            d_cur = df.at[r, c]
+            d_acc = df_sum.at[r, c]
+            df_sum.at[r, c] = {
+                0: d_acc.get(0, 0) + d_cur.get(0, 0),
+                1: d_acc.get(1, 0) + d_cur.get(1, 0),
+                2: d_acc.get(2, 0) + d_cur.get(2, 0),
+            }
+
+df_mean = df_sum.copy()
+for r in rows:
+    for c in cols:
+        d = df_sum.at[r, c]
+        df_mean.at[r, c] = {k: float(v) / nfiles for k, v in d.items()}
 
 
-plt.xlabel("# Timestep")
-plt.ylabel("# of agents")
-plt.title(f"Evolution of Q-values rankings (moving average window={window})")
-plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-plt.tight_layout()
-plt.autoscale(enable=True, axis='x', tight=True)
-plt.grid(True)
-plt.savefig("qvalues_rankings.png", dpi=300)
+group_0, group_1, group_2, group_mix = [], [], [], []
+
+for c in cols:
+    a, b, cc = parse_triple(c)
+    if a >= 3:
+        group_0.append(c)
+    elif b >= 3:
+        group_1.append(c)
+    elif cc >= 3:
+        group_2.append(c)
+    else:
+        group_mix.append(c)
+
+groups = [
+    ("Majority of group has chosen Defect ", group_0),
+    ("Majority of group has chosen Cooperate ", group_1),
+    ("Majority of group has chosen to Abstain ", group_2),
+    ("Mixed choices", group_mix),
+]
+
+group_action_series = {} 
+
+for title, group_cols in groups:
+    if len(group_cols) == 0:
+        for action in [0, 1, 2]:
+            vals = pd.Series([0.0] * len(rows), index=rows)
+            group_action_series[(title, action)] = vals.rolling(window=window, min_periods=1).mean()
+        continue
+
+    for action in [0, 1, 2]:
+        df_action = pd.DataFrame({col: df_mean[col].apply(lambda d: d.get(action, 0.0)) for col in group_cols})
+        mean_series = df_action.mean(axis=1)
+        rolled = mean_series.rolling(window=window, min_periods=1).mean()
+        group_action_series[(title, action)] = rolled
+
+
+fig, axes = plt.subplots(4, 1, figsize=(12, 16), sharex=True)
+fig.subplots_adjust(hspace=0.35)
+fig.suptitle(f"Q-Values rankings for each Q-Table row", fontsize=16)
+
+for ax, (title, _) in zip(axes, groups):
+    ax.set_title(title, loc="left", fontsize=13)
+    ax.set_ylabel("# agents", fontsize=10)
+    for action in [0, 1, 2]:
+        s = group_action_series[(title, action)]
+        ax.plot(s.index, s.values, label=action_labels[action], color=action_colors[action], linewidth=2)
+    ax.tick_params(labelbottom=True)
+    ax.autoscale(enable=True, axis='x', tight=True)
+    ax.legend(fontsize=9, loc="upper right")
+    ax.grid(alpha=0.3)
+
+axes[-1].set_xlabel("# Round", fontsize=10)
+plt.tight_layout(rect=[0, 0, 1, 0.96])
+plt.savefig("q_values_subplot0.png", dpi=300)
