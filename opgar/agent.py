@@ -63,7 +63,7 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "alpha", "discount_factor", "q_table", "current_state","n", "state_to_idx"
+    "alpha", "discount_factor", "q_table", "current_state","n", "state_to_idx", "idx_to_state"
     ]
 
     ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
@@ -79,6 +79,7 @@ class QLearningAgent(_Agent):
             if d + c + l == group_size - 1
         ]
         self.state_to_idx = {state: i for i, state in enumerate(combinations)}
+        self.idx_to_state = dict(enumerate(combinations))
 
         self.q_table = np.zeros((len(combinations), len(self.ACTIONS)), dtype=float)
         self.current_state = None
