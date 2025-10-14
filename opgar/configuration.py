@@ -56,10 +56,10 @@ class Configuration:
         "sigma",
         "n",
         "N",
-        "gamma",
-        "beta",
-        "m",
-        "epsilon",
+        #"gamma",
+        #"beta",
+        #"m",
+        #"epsilon",
         "omega",
         "_meta_data",
         "alpha", 
@@ -78,10 +78,10 @@ class Configuration:
         t: int,
         composition: dict,
         norm: str,
-        gamma: float,
-        beta: float,
-        m: float,
-        epsilon: float,
+        #gamma: float,
+        #beta: float,
+        #m: float,
+        #epsilon: float,
         strategy_group: str, 
         omega: int,
         alpha: float,
@@ -178,6 +178,7 @@ class Configuration:
         # ----------------------------------------------------------------------
         # PUNISHMENT COST & PENALTY
         # ----------------------------------------------------------------------
+        """
         if "P" in "".join(composition.keys()):
             if gamma > beta:
                 raise ValueError(
@@ -191,6 +192,7 @@ class Configuration:
                 )
         self.gamma = gamma
         self.beta = beta
+        """
 
         # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
@@ -204,12 +206,14 @@ class Configuration:
         # ----------------------------------------------------------------------
         # If m=0, people always imitate people from outside of the group
         # if m=1, people always imitate people from the same group
+        """
         if m < 0 or m > 1:
             raise ValueError("Probability of mutation vs evolution m ('{m}') must be in [0,1].")
         self.m = m
         if epsilon < 0 or epsilon > 1:
             raise ValueError("Probability of mutation epsilon ('{epsilon}') must be in [0,1].")
         self.epsilon = epsilon
+        """
 
         # -----------------------------------------------------------------------
         # Q-LEARNING PARAMETERS
