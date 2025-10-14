@@ -54,7 +54,7 @@ class Population:
         # Granular record of actions
         self.track_strategy_actions = True
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=1, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
 
@@ -85,6 +85,9 @@ class Population:
         batches = list(range(t_start, t_end, t_step)) + [t_end]
 
         self.groups_of_players_IDs = self._get_groups()
+
+        if transition_matrix_batch is None:
+            transition_matrix_batch = self.config.t
 
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
             period_results = {t: {}.fromkeys(range(self.config.omega)) for t in range(batch_start, batch_end)}
@@ -158,8 +161,16 @@ class Population:
                 transitions = pd.concat([pd.Series(period_results[t][n]["Transitions"]) for n in range(self.config.omega)], axis=1).transpose()
                 transitions.index = np.arange(self.config.omega)
                 actions_transitions.append(transitions)
-                all_rankings = sorted({r for n in range(self.config.omega) for r in period_results[t][n]["Q values"].index})
-                ranking = pd.DataFrame([period_results[t][n]["Q values"].reindex(all_rankings, fill_value=0) for n in range(self.config.omega)])
+                states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
+                #ranking = ([{state: dict(period_results[t][n]["Q values"].get(state, {}))
+                #    for state in sorted({s for n2 in range(self.config.omega) for s in period_results[t][n2]["Q values"]})}
+                #    for n in range(self.config.omega)
+                #])
+                ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
+                ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
+                #(period_results[t][n]["Q values"].reindex(states, fill_value=0) for n in range (self.config.omega))
+                #all_rankings = sorted({r for n in range(self.config.omega) for r in period_results[t][n]["Q values"].index})
+                #ranking = pd.DataFrame([period_results[t][n]["Q values"].reindex(all_rankings, fill_value=0) for n in range(self.config.omega)])
                 q_values_ranking.append(ranking)
 
             # Actions
@@ -467,6 +478,7 @@ class Population:
         Returns:
             pandas.Series: Contains all information regarding the present time-step.
         """
+        num_states = len(self.agents[0].q_table)
 
         # Save all results for the time-step here (possibly multiple rounds of games)
         period_result = {
@@ -475,7 +487,7 @@ class Population:
             "Composition": defaultdict(float),
             "Actions per strategy": defaultdict(int),
             "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions},
-            "Q values": Counter()
+            "Q values": {self.agents[0].idx_to_state[state_idx]: Counter() for state_idx in range(num_states)}
             }
         
         # Record total strategy payoffs, strategy composition
@@ -483,8 +495,11 @@ class Population:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            ranking_q_values = tuple(np.argsort(agent.q_table.max(axis=0))[::-1])
-            period_result["Q values"][ranking_q_values] += 1
+            for state_idx, row in enumerate(agent.q_table):
+                ranking = np.argmax(row)
+                period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
+            #ranking_q_values = tuple(np.argsort(agent.q_table.max(axis=0))[::-1])
+            #period_result["Q values"][ranking_q_values] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
