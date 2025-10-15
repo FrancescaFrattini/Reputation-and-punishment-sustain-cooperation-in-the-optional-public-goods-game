@@ -414,7 +414,10 @@ class Population:
                 for playerID, contribution in zip(group, group_contribution):
                     self.agents[playerID].tracker.append(None)
                     self.agents[playerID].utility += self.config.sigma
-
+                    if self.agents[playerID].strategy["behavioural"] == "XII":
+                        counts = group_actions.copy()
+                        counts[contribution] -= 1
+                        self.agents[playerID].learn(reward=self.config.sigma, contributions=counts)
                 logging.debug(
                     f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
                 )
@@ -435,9 +438,9 @@ class Population:
                 payoff_per_player = (
                     total_contribution * self.config.r / total_participating
                 ) 
-                #variable for Q-Learning agents
-                old_utility = self.agents[playerID].utility 
                 for playerID, contribution in zip(group, group_contribution):
+                    #variable for Q-Learning agents
+                    old_utility = self.agents[playerID].utility 
                     self.agents[playerID].tracker.append(contribution)
                     logging.debug("Player %s chose action %s", playerID, self.agents[playerID].tracker[-1])
                     if contribution == 1: #payoff for cooperators
