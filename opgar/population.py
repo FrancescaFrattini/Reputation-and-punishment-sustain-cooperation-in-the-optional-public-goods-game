@@ -491,8 +491,6 @@ class Population:
             for state_idx, row in enumerate(agent.q_table):
                 ranking = np.argmax(row)
                 period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
-            #ranking_q_values = tuple(np.argsort(agent.q_table.max(axis=0))[::-1])
-            #period_result["Q values"][ranking_q_values] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
