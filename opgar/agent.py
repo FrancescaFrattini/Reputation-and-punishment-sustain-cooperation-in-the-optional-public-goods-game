@@ -63,7 +63,7 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "alpha", "discount_factor", "q_table", "current_state","n", "state_to_idx", "idx_to_state"
+    "alpha", "discount_factor", "q_table", "current_state","n", 
     ]
 
     ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
@@ -71,17 +71,8 @@ class QLearningAgent(_Agent):
     def __init__(self, ID, strategy,  group_size, alpha=0.1, discount_factor=0.1, n=10):
         super().__init__(ID, strategy=strategy, n=n)
         self.alpha, self.discount_factor = alpha, discount_factor
-        combinations = [
-            (d, c, l)
-            for d in range(group_size)
-            for c in range(group_size)
-            for l in range(group_size)
-            if d + c + l == group_size - 1
-        ]
-        self.state_to_idx = {state: i for i, state in enumerate(combinations)}
-        self.idx_to_state = dict(enumerate(combinations))
 
-        self.q_table = np.zeros((len(combinations), len(self.ACTIONS)), dtype=float)
+        self.q_table = {}
         self.current_state = None
 
     def _choose_action(self, epsilon, average_reputation=None):
@@ -97,43 +88,36 @@ class QLearningAgent(_Agent):
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
-        if random.random() < epsilon or not np.any(self.q_table[self.current_state]):
+        if random.random() < epsilon or not self.q_table:
             return random.choice(self.ACTIONS)
         best_action_index = np.argmax(self.q_table[self.current_state])
         return self.ACTIONS[best_action_index]
     
-    def learn(self, reward, contributions):
+    def learn(self, reward, avg):
         """        
-        Updates the agent's Q-values based on the count of actions taken from other group's members.
-        At each time step, the agent observes the contributions of other agents in the group for each possible action (1, 0, None).
-        The contributions are stored in a circular buffer (self.q_table) of size n, where n is the number of time steps to remember.
-        After each round, the agent updates its Q-values based on the observed contributions.
+        Updates the agent's Q-values based on the average payoff of the belonging group for the current round.
+        At each time step, the agent observes the average payoff of the group for each possible action (1, 0, None).
+        After each round, the agent updates its Q-values based on the observed value.
         Args:
-            contributions (dict): A dictionary with keys as actions (1, 0, None) and values as the count of agents who chose 
-            that action.
+            avg (float): The average payoff of the group for the current round.
             reward (float): The reward received after taking the last action.    
     """
-        triple = self._from_counter_to_tuple(contributions)
-        idx = self.state_to_idx[triple]
-        
         action_idx = self._action_to_index(self.tracker[-1])
-
+        if avg not in self.q_table:
+            self.q_table[avg] = [0, 0, 0]
+    
         if self.current_state is not None:
-            td_error = reward  + (self.discount_factor*np.max(self.q_table[idx])) - self.q_table[self.current_state][action_idx]
+            td_error = reward  + (self.discount_factor*np.max(self.q_table[avg])) - self.q_table[self.current_state][action_idx]
             self.q_table[self.current_state][action_idx] += self.alpha * td_error
-
-        self.current_state = idx
-
-    def _from_counter_to_tuple(self, counter: Counter):
+        self.current_state = avg
+    
+    def add_or_update(self, key: float, values=None):
+        """Aggiunge o aggiorna una riga associata al float.
+        Se values è None, inizializza a [0.0, 0.0, 0.0].
         """
-        Converts a Counter with keys {0, 1, None} to a tuple (count_0, count_1, count_None).
-        Args:
-            counter (Counter): A Counter with keys {0, 1, None}, where None represents action 2.
-        Returns:
-            tuple: A tuple (count_0, count_1, count_2) representing the counts of actions 0, 1, and None.
-    """
-        new_counter = {(2 if k is None else k): v for k, v in counter.items()}
-        return tuple([new_counter.get(a, 0) for a in [0, 1, 2]])
+        if key not in self.q_table:
+            self.q_table[key] = [0.0, 0.0, 0.0]
+        self.q_table[key] = values if values is not None else [0.0, 0.0, 0.0]
 
     def _action_to_index(self, action):
             """

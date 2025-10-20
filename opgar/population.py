@@ -4,6 +4,7 @@ import logging
 from collections import Counter, defaultdict
 from itertools import product
 import os
+import random
 from time import time
 import numpy as np
 import pandas as pd
@@ -161,10 +162,20 @@ class Population:
                 transitions = pd.concat([pd.Series(period_results[t][n]["Transitions"]) for n in range(self.config.omega)], axis=1).transpose()
                 transitions.index = np.arange(self.config.omega)
                 actions_transitions.append(transitions)
-                states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
-                ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
+
+                all_avg = sorted({avg for n in range(self.config.omega) for avg in period_results[t][n]["Q values"].keys()})
+
+                # Costruzione compatta del DataFrame
+                ranking = pd.DataFrame([
+                    {avg: period_results[t][n]["Q values"].get(avg, {0: 0, 1: 0, 2: 0}) for avg in all_avg}
+                    for n in range(self.config.omega)
+                ])
                 ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
                 q_values_ranking.append(ranking)
+                #states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
+                # ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
+                #ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
+                #q_values_ranking.append(ranking)
 
             # Actions
             action_tracker = pd.DataFrame(cooperative_action_tracker, columns=["Cooperative", "Non-Cooperative", "Loner"], index=range(batch_start, batch_end))
@@ -417,7 +428,7 @@ class Population:
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         counts = group_actions.copy()
                         counts[contribution] -= 1
-                        self.agents[playerID].learn(reward=self.config.sigma, contributions=counts)
+                        self.agents[playerID].learn(reward=self.config.sigma, avg=self.config.sigma)
                 logging.debug(
                     f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
                 )
@@ -438,6 +449,13 @@ class Population:
                 payoff_per_player = (
                     total_contribution * self.config.r / total_participating
                 ) 
+                avg_payoff = 0
+                for playerID, contribution in zip(group, group_contribution):
+                    if contribution == None:
+                        avg_payoff += 1
+                    else:
+                        avg_payoff += payoff_per_player
+                avg_payoff = avg_payoff / self.config.n
                 for playerID, contribution in zip(group, group_contribution):
                     #variable for Q-Learning agents
                     old_utility = self.agents[playerID].utility 
@@ -455,7 +473,7 @@ class Population:
                         counts = group_actions.copy()
                         counts[contribution] -= 1
                         reward = self.agents[playerID].utility - old_utility
-                        self.agents[playerID].learn(reward=reward, contributions=counts)
+                        self.agents[playerID].learn(reward=reward, avg=avg_payoff)
                         
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
@@ -483,7 +501,7 @@ class Population:
             "Composition": defaultdict(float),
             "Actions per strategy": defaultdict(int),
             "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions},
-            "Q values": {self.agents[0].idx_to_state[state_idx]: Counter() for state_idx in range(num_states)}
+            "Q values": defaultdict(Counter)
             }
         
         # Record total strategy payoffs, strategy composition
@@ -491,9 +509,9 @@ class Population:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            for state_idx, row in enumerate(agent.q_table):
-                ranking = np.argmax(row)
-                period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
+            for avg_payoff in agent.q_table.keys():
+                ranking = np.argmax(agent.q_table[avg_payoff])
+                period_result["Q values"][avg_payoff][ranking] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
@@ -510,7 +528,7 @@ class Population:
         period_result["Average Payoffs"] = {
             k: period_result["Payoffs"][k] / period_result["Actions per strategy"][k]
             for k in period_result["Payoffs"]}
-    
+            
         # Flatten period_result from dict-of-dicts to single-level dict
         #   e.g. {"a1": {"a2": []}, "b1"={"b2":[]}} -> {('a1', 'a2'): [], ('b1', 'b2'): []}
         #   This makes it easier to convert it to a MultiIndex Series/DataFrame later when concatenating results over
