@@ -111,14 +111,6 @@ class QLearningAgent(_Agent):
             self.q_table[self.current_state][action_idx] += self.alpha * td_error
         self.current_state = avg
     
-    def add_or_update(self, key: float, values=None):
-        """Aggiunge o aggiorna una riga associata al float.
-        Se values è None, inizializza a [0.0, 0.0, 0.0].
-        """
-        if key not in self.q_table:
-            self.q_table[key] = [0.0, 0.0, 0.0]
-        self.q_table[key] = values if values is not None else [0.0, 0.0, 0.0]
-
     def _action_to_index(self, action):
             """
             Converts action (0, 1, None) to index (0, 1, 2) for Q-table access.

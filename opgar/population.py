@@ -172,10 +172,6 @@ class Population:
                 ])
                 ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
                 q_values_ranking.append(ranking)
-                #states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
-                # ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
-                #ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
-                #q_values_ranking.append(ranking)
 
             # Actions
             action_tracker = pd.DataFrame(cooperative_action_tracker, columns=["Cooperative", "Non-Cooperative", "Loner"], index=range(batch_start, batch_end))
