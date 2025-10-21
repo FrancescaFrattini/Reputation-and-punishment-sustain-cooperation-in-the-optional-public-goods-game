@@ -34,26 +34,6 @@ for col in mean_df.columns:
 action_labels = {0: "Defect", 1: "Cooperate", 2: "Loner"}
 action_colors = {0: "tab:orange", 1: "tab:green", 2: "tab:blue"}
 
-"""
-dfs = []
-for f in files:
-    df = pd.read_csv(f, index_col=0).applymap(ast.literal_eval)
-    dfs.append(df)
-
-mean_df = dfs[0].copy()
-
-for i in range(mean_df.shape[0]):        
-    for j in mean_df.columns:            
-        combined = defaultdict(list)
-        for df in dfs:
-            d = df.loc[i, j]
-            for k, v in d.items():
-                combined[k].append(v)
-        mean_df.at[i, j] = {k: sum(v)/len(v) for k, v in combined.items()}
-
-window = 1  
-
-"""
 rows = []
 for period, row in smoothed_df.iterrows():
     for avg_payoff, d in row.items():
