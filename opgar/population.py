@@ -54,8 +54,9 @@ class Population:
 
         # Granular record of actions
         self.track_strategy_actions = True
+        self.exploration_rate = self.config.exploration_rate
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True, reset_exploration_rate=None):
         """
         Simulate multiple rounds of public goods games
 
@@ -116,8 +117,10 @@ class Population:
                         self._update_reputations()
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
        
-                    if self.config.exploration_rate > self.config.minimum_exploration_rate:
-                        self.config.exploration_rate *= 0.9995
+                    if self.exploration_rate > self.config.minimum_exploration_rate:
+                        self.exploration_rate *= 0.9995
+
+                    logging.info(f"exploration rate {self.exploration_rate}")
 
                     # Neaten results
                     period_results[(t - batch_start) * self.config.omega + n] =  \
@@ -138,6 +141,11 @@ class Population:
                     cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
                     reputation_tracker[t % t_step] = self._record_reputations()
                     self._reset_population()
+
+                    # Reset exploration rate
+                    if reset_exploration_rate is not None and \
+                            ((t - batch_start) * self.config.omega + n) % reset_exploration_rate == 0:
+                        self.exploration_rate = self.config.exploration_rate
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
