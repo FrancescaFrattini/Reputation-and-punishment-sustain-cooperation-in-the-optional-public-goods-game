@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import glob
 
-csv_files = glob.glob("csv/j*_actions_0.csv")
+csv_files = glob.glob("csv/j?_actions_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = pd.concat(dfs).groupby(level=0).mean()

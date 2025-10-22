@@ -53,8 +53,9 @@ class Population:
 
         # Granular record of actions
         self.track_strategy_actions = True
+        self.exploration_rate = config.exploration_rate
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True, reset_exploration_rate=None):
         """
         Simulate multiple rounds of public goods games
 
@@ -90,11 +91,11 @@ class Population:
             transition_matrix_batch = self.config.t
 
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
-            period_results = {t: {}.fromkeys(range(self.config.omega)) for t in range(batch_start, batch_end)}
+            period_results = {}.fromkeys(range((batch_end - batch_start) * self.config.omega))
             punishment_tracker = {}.fromkeys(range(batch_start, batch_end))
             cooperative_action_tracker = [None] * (batch_end - batch_start)
             reputation_tracker = [None] * (batch_end - batch_start)
-            strategy_actions_tracker = {t: {}.fromkeys(range(self.config.omega)) for t in range(batch_start, batch_end)}
+            strategy_actions_tracker = {}.fromkeys(range((batch_end - batch_start) * self.config.omega))
             transition_matrix = Generator._generate_transition_matrix(self.actions, 
                                                                  int((batch_end - batch_start + 1) / transition_matrix_batch))
 
@@ -107,6 +108,8 @@ class Population:
 
                 for n in range(self.config.omega):
 
+                    logging.info(f"epsilon {self.exploration_rate}")
+
                     all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
 
                     # First game
@@ -115,13 +118,14 @@ class Population:
                         self._update_reputations()
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
        
-                    if self.config.exploration_rate > self.config.minimum_exploration_rate:
-                        self.config.exploration_rate *= 0.9995
+                    if self.exploration_rate > self.config.minimum_exploration_rate:
+                        self.exploration_rate *= 0.9995
 
                     # Neaten results
-                    period_results[t][n] = self._get_period_result(transition_matrix[int(t / transition_matrix_batch)])
+                    period_results[(t - batch_start) * self.config.omega + n] =  \
+                            self._get_period_result(transition_matrix[int(t / transition_matrix_batch)])
                     punishment_tracker[t] = self._neaten_punishment_results(punishment_tracker[t])
-                    strategy_actions_tracker[t][n] = all_action_tracker
+                    strategy_actions_tracker[(t - batch_start) * self.config.omega + n] = all_action_tracker
 
                     """
                     # Evolution
@@ -131,10 +135,15 @@ class Population:
                     """
                 
                     # Gather extra information and reset
-                    period_results[t][n]["Fitness"] = self._get_population_fitness(period_results[t][n])
+                    period_results[(t - batch_start) * self.config.omega + n]["Fitness"] = \
+                        self._get_population_fitness(period_results[(t - batch_start) * self.config.omega + n])
                     cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
                     reputation_tracker[t % t_step] = self._record_reputations()
                     self._reset_population()
+
+                    if reset_exploration_rate and \
+                            ((t - batch_start) * self.config.omega + n) % reset_exploration_rate == 0:
+                        self.exploration_rate = self.config.exploration_rate
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
@@ -145,40 +154,33 @@ class Population:
             os.makedirs(os.path.dirname("json/"), exist_ok=True)
 
             # Average Payoffs & Population State & actions transitions
-            payoffs = []
-            composition = []
-            q_values_ranking = []
-            actions_transitions = []
-            for t in range(batch_start, batch_end):
-                avg_payoffs = pd.concat([period_results[t][n]["Average Payoffs"] for n in range(self.config.omega)], axis=1).transpose()
-                avg_payoffs.index = np.arange(self.config.omega)
-                avg_payoffs = avg_payoffs.astype("float16")
-                payoffs.append(avg_payoffs)
-                population = pd.concat([period_results[t][n]["Composition"] for n in range(self.config.omega)], axis=1).transpose()
-                population.index = np.arange(self.config.omega)
-                population = population.astype("float16")
-                composition.append(population)
-                transitions = pd.concat([pd.Series(period_results[t][n]["Transitions"]) for n in range(self.config.omega)], axis=1).transpose()
-                transitions.index = np.arange(self.config.omega)
-                actions_transitions.append(transitions)
-                states = sorted({state for n in range(self.config.omega) for state in period_results[t][n]["Q values"].keys()})
-                ranking = pd.DataFrame([{state: dict(period_results[t][n]["Q values"][state]) for state in states} for n in range(self.config.omega)])
-                ranking = ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
-                q_values_ranking.append(ranking)
+            avg_payoffs = pd.concat([period_results[n]["Average Payoffs"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
+            avg_payoffs.index = np.arange((batch_end - batch_start) * self.config.omega)
+            avg_payoffs = avg_payoffs.astype("float16")
+            population = pd.concat([period_results[n]["Composition"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
+            population.index = np.arange((batch_end - batch_start) * self.config.omega)
+            population = population.astype("float16")
+            action_transitions = pd.concat([pd.Series(period_results[n]["Transitions"]) for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
+            action_transitions.index = np.arange((batch_end - batch_start) * self.config.omega)
+
+            all_avg = sorted({avg for n in range((batch_end - batch_start) * self.config.omega) for avg in period_results[n]["Q values"].keys()})
+            q_values_ranking = pd.DataFrame([
+                {avg: period_results[n]["Q values"].get(avg, {0: 0, 1: 0, 2: 0}) for avg in all_avg}
+                for n in range((batch_end - batch_start) * self.config.omega)
+            ])
+            q_values_ranking = q_values_ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
 
             # Actions
             action_tracker = pd.DataFrame(cooperative_action_tracker, columns=["Cooperative", "Non-Cooperative", "Loner"], index=range(batch_start, batch_end))
             action_tracker = action_tracker.astype("float16")
-            tracker = []
-            for strategy_tracker in strategy_actions_tracker.values():
-                tracker.append(pd.DataFrame.from_dict(strategy_tracker, orient="index", dtype="int16"))
+            strategy_tracker = pd.DataFrame.from_dict(strategy_actions_tracker, orient="index", dtype="int16")
 
             transitions = []
             # Actions transitions
             for matrix in transition_matrix:
-                transition = [(str(outerKey), str(innerKey), innerVal) for outerKey, outerVal in matrix.items() for innerKey, innerVal in outerVal.items() if innerVal != 0]
-                transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
-            # Reputations
+                transition = [(str(outerKey), str(innerKey), innerVal) for outerKey, outerVal in matrix.items() 
+                            for innerKey, innerVal in outerVal.items() if innerVal != 0]
+             # Reputations
             #reputation_tracker = pd.DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             #reputation_tracker.astype("float16")
 
@@ -192,21 +194,17 @@ class Population:
                 else:
                     batch_code = ""
                 action_tracker.to_csv(f"csv/j{job_id}_actions{batch_code}.csv")
-                for batch_num, payoff in enumerate(payoffs):
-                    payoff.to_csv(f"csv/j{job_id}_payoffs{batch_code}_{batch_num}.csv")
-                for batch_num, population in enumerate(composition):
-                    population.to_csv(f"csv/j{job_id}_composition{batch_code}_{batch_num}.csv")
+                avg_payoffs.to_csv(f"csv/j{job_id}_payoffs{batch_code}.csv")
+                population.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
                 #reputation_tracker.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
+                q_values_ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}.csv")
+                action_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+
                 for batch_num, transition in enumerate(transitions):
-                    transition.to_csv(f"csv/j{job_id}_transitions{batch_code}_{batch_num}.csv")
-                for batch_num, ranking in enumerate(q_values_ranking):
-                    ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}_{batch_num}.csv")
-                for batch_num, transition in enumerate(actions_transitions):
                     transition.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}_{batch_num}.csv", index=True)
 
                 if self.track_strategy_actions:
-                    for batch_num, strategy_tracker in enumerate(tracker):
-                        strategy_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}_{batch_num}.csv")
+                    strategy_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
 
             processing_end = time()
             logging.info(f"---> Export Batch Data ---> {processing_end-processing_start} seconds elapsed")
@@ -216,7 +214,7 @@ class Population:
                 json.dump(self.config.to_dict(rng_seed), f)
 
         if batch_end == self.config.t or disable_export is True:
-            return avg_payoffs, composition, transitions, punishment_tracker, action_tracker, reputation_tracker
+            return avg_payoffs, population, transitions, punishment_tracker, action_tracker, reputation_tracker
         else:
             logging.warning("Batch processing used. Results are automatically exported as .csv/.json files.")
             return
@@ -401,7 +399,7 @@ class Population:
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.config.exploration_rate)
+                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.exploration_rate)
                 for ID in group
             ]
             # Possible cases
