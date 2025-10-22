@@ -3,7 +3,7 @@ import ast
 import pandas as pd
 import matplotlib.pyplot as plt
 
-files = sorted(glob.glob("csv/j*_q_values_rankings_0_0.csv"))
+files = sorted(glob.glob("csv/j*_q_values_rankings_0.csv"))
 
 window = 1  
 

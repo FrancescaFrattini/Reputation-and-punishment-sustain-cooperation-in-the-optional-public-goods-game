@@ -44,7 +44,7 @@ labels = {
     "None->0": "Loner → Defect",
 }
 
-files = glob.glob("csv/j*_transitions_per_timestep_*_0.csv")
+files = glob.glob("csv/j*_transitions_per_timestep_0.csv")
 dfs = [load_and_expand(f) for f in files]
 
 df_sum = sum(dfs) / len(dfs)
