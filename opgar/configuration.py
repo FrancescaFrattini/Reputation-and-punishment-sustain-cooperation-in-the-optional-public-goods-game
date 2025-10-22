@@ -13,10 +13,6 @@ class Configuration:
             sigma (float): The growth factor for a loner's utility, used to calculate loners' payoff (0 < sigma < (r-1)c, c is the cost sustained by cooperators in every single game)
             composition (dict): A dictionary of strategy and proportion key-value pairs. See _Strategy documentation.
             norm (str): The specific social norm within the population. See _Norm documentation.
-            gamma (float): The cost required to punish someone.
-            beta (float): The penalty one pays if one is punished.
-            m (float): Probability of evolutionary mixing in group selection
-            epsilon (float): The rate of mutation under group selection, this is unused with Rand and Nowak evolutionary mechanism.
             strategy_group (str): The name of the model being simulated, see `_Strategy.strategy_groups`.
             omega (float): Number of rounds played of the OPGG in a single time-step. 
             alpha(float): The learning rate for Q-Learning agents.
@@ -39,11 +35,7 @@ class Configuration:
                     sigma=1,
                     composition={}.fromkeys(strategies, 1/len(strategies)), 
                     norm="Defector",
-                    gamma=1,
-                    beta=2,
-                    m=0.95,
                     omega=10/11, 
-                    epsilon=0.1,
                     strategy_group="all"
                 )
     """
@@ -56,10 +48,6 @@ class Configuration:
         "sigma",
         "n",
         "N",
-        #"gamma",
-        #"beta",
-        #"m",
-        #"epsilon",
         "omega",
         "_meta_data",
         "alpha", 
@@ -78,10 +66,6 @@ class Configuration:
         t: int,
         composition: dict,
         norm: str,
-        #gamma: float,
-        #beta: float,
-        #m: float,
-        #epsilon: float,
         strategy_group: str, 
         omega: int,
         alpha: float,
@@ -176,45 +160,12 @@ class Configuration:
         self.n = n
 
         # ----------------------------------------------------------------------
-        # PUNISHMENT COST & PENALTY
-        # ----------------------------------------------------------------------
-        """
-        if "P" in "".join(composition.keys()):
-            if gamma > beta:
-                raise ValueError(
-                    f"The cost to punish ('{gamma}') should not be greater than the penalty "
-                    f"incurred by being punished ('{beta}') ."
-                )
-            if gamma < 0 or beta < 0:
-                raise ValueError(
-                    f"The cost to punish ('{gamma}') or the  penalty incurred by being punished "
-                    f"('{beta}') cannot be negative."
-                )
-        self.gamma = gamma
-        self.beta = beta
-        """
-
-        # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
         # ----------------------------------------------------------------------
         if omega < 1:
             raise ValueError("Probability of further interactions omega ('{omega}') must be within [1,inf).")
         self.omega = omega
-
-        # ----------------------------------------------------------------------
-        # GROUP-WIDE vs POPULATION-WIDE EVOLUTION 
-        # ----------------------------------------------------------------------
-        # If m=0, people always imitate people from outside of the group
-        # if m=1, people always imitate people from the same group
-        """
-        if m < 0 or m > 1:
-            raise ValueError("Probability of mutation vs evolution m ('{m}') must be in [0,1].")
-        self.m = m
-        if epsilon < 0 or epsilon > 1:
-            raise ValueError("Probability of mutation epsilon ('{epsilon}') must be in [0,1].")
-        self.epsilon = epsilon
-        """
-
+        
         # -----------------------------------------------------------------------
         # Q-LEARNING PARAMETERS
         # -----------------------------------------------------------------------
