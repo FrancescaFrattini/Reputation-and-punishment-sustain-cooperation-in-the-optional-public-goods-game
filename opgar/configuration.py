@@ -20,6 +20,7 @@ class Configuration:
             exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
             delta(float): Probability of an agent changing its group.
             minimum_exploration_rate (float): Minimum exploration rate for Q-Learning agents.
+            reset_exploration_rate (int): Number of rounds after which the exploration rate is reset.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -55,6 +56,7 @@ class Configuration:
         "exploration_rate",
         "delta",
         "minimum_exploration_rate",
+        "reset_exploration_rate",
     ]
 
     def __init__(
@@ -73,6 +75,7 @@ class Configuration:
         exploration_rate: float,
         delta: float,
         minimum_exploration_rate: float,
+        reset_exploration_rate: int,
     ):
         self._meta_data = {}
 
@@ -185,6 +188,10 @@ class Configuration:
         if minimum_exploration_rate < 0 or minimum_exploration_rate > 1:
             raise ValueError("Minimum exploration rate ('{minimum_exploration_rate}') must be in [0,1].")
         self.minimum_exploration_rate = minimum_exploration_rate
+
+        if reset_exploration_rate < 1 or reset_exploration_rate > t * omega:
+            raise ValueError("Reset exploration rate ('{reset_exploration_rate}') must be in [1, t * omega].")
+        self.reset_exploration_rate = reset_exploration_rate
 
         # ------------------------------------------------------------------------
         # PROBABILITY OF AN AGENT TO CHANGE ITS BELONGING GROUP

@@ -35,6 +35,7 @@ config = Configuration(
     discount_factor = 0.1,
     delta = 0.5,
     minimum_exploration_rate = 0.05,
+    reset_exploration_rate = 3000,
 )
 
 for id in range(0, 1):
@@ -43,4 +44,3 @@ for id in range(0, 1):
     model = Population(config)
     np.random.seed(seed)
     results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=5, reset_exploration_rate=2)
-    #print(results)

@@ -55,7 +55,7 @@ class Population:
         self.track_strategy_actions = True
         self.exploration_rate = config.exploration_rate
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True, reset_exploration_rate=None):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
 
@@ -108,8 +108,6 @@ class Population:
 
                 for n in range(self.config.omega):
 
-                    logging.info(f"epsilon {self.exploration_rate}")
-
                     all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
 
                     # First game
@@ -141,8 +139,8 @@ class Population:
                     reputation_tracker[t % t_step] = self._record_reputations()
                     self._reset_population()
 
-                    if reset_exploration_rate and \
-                            ((t - batch_start) * self.config.omega + n) % reset_exploration_rate == 0:
+                    if self.config.reset_exploration_rate and \
+                            ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
 
             # ----------------------------------------------------------------------
