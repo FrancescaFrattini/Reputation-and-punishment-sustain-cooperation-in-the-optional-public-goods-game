@@ -401,7 +401,7 @@ class Population:
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.config.exploration_rate)
+                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.exploration_rate)
                 for ID in group
             ]
             # Possible cases
