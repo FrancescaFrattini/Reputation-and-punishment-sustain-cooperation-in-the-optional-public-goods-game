@@ -39,6 +39,8 @@ config = Configuration(
     discount_factor = 0.1,
     delta = 0.5,
     minimum_exploration_rate = 0.05,
+    reset_exploration_rate = 3000,
+    epsilon_decay = 0.999
     )
 
 for id in range(0, 1):

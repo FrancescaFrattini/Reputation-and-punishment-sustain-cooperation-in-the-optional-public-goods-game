@@ -24,6 +24,8 @@ class Configuration:
             exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
             delta(float): Probability of an agent changing its group.
             minimum_exploration_rate (float): Minimum exploration rate for Q-Learning agents.
+            reset_exploration_rate (int): Number of rounds after which the exploration rate is reset to its initial value.
+            epsilon_decay(float): Decay rate for exploration rate in Q-Learning agents.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -67,6 +69,8 @@ class Configuration:
         "exploration_rate",
         "delta",
         "minimum_exploration_rate",
+        "reset_exploration_rate",
+        "epsilon_decay",
     ]
 
     def __init__(
@@ -89,6 +93,8 @@ class Configuration:
         exploration_rate: float,
         delta: float,
         minimum_exploration_rate: float,
+        reset_exploration_rate: int,
+        epsilon_decay: float,
     ):
         self._meta_data = {}
 
@@ -231,9 +237,17 @@ class Configuration:
             raise ValueError("Exploration rate epsilon ('{exploration_rate}') must be in [0,1].")
         self.exploration_rate = exploration_rate
 
+        if reset_exploration_rate < 0 or reset_exploration_rate > t * omega:
+            raise ValueError("Reset exploration rate ('{reset_exploration_rate}') must be in [0, t * omega].")
+        self.reset_exploration_rate = reset_exploration_rate
+
         if minimum_exploration_rate < 0 or minimum_exploration_rate > 1:
             raise ValueError("Minimum exploration rate ('{minimum_exploration_rate}') must be in [0,1].")
         self.minimum_exploration_rate = minimum_exploration_rate
+
+        if epsilon_decay < 0 or epsilon_decay > 1: 
+            raise ValueError("Epsilon decay ('{epsilon_decay}') must be in [0,1].")
+        self.epsilon_decay = epsilon_decay
 
         # ------------------------------------------------------------------------
         # PROBABILITY OF AN AGENT TO CHANGE ITS BELONGING GROUP

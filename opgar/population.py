@@ -118,9 +118,7 @@ class Population:
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
        
                     if self.exploration_rate > self.config.minimum_exploration_rate:
-                        self.exploration_rate *= 0.9995
-
-                    logging.info(f"exploration rate {self.exploration_rate}")
+                        self.exploration_rate *= self.config.epsilon_decay
 
                     # Neaten results
                     period_results[(t - batch_start) * self.config.omega + n] =  \
