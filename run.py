@@ -28,18 +28,14 @@ config = Configuration(
     sigma = 1,
     composition = {}.fromkeys(only_qlearner, 1/len(only_qlearner)), #only Q-Learners
     norm = None,
-    gamma = 0,
-    beta = 0,
-    m = 0.95,
     omega = 1, 
-    epsilon = 0,
     strategy_group = "Q-Learning no punishment",
     alpha = 0.1,
     exploration_rate = 1.0,
     discount_factor = 0.1,
     delta = 0.5,
     minimum_exploration_rate = 0.05,
-    reset_exploration_rate = 3000,
+    reset_exploration_rate = None,
     epsilon_decay = 0.999
     )
 
@@ -49,4 +45,3 @@ for id in range(0, 1):
     model = Population(config)
     np.random.seed(seed)
     results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=5)
-    print(results)

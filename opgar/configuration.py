@@ -237,7 +237,7 @@ class Configuration:
             raise ValueError("Exploration rate epsilon ('{exploration_rate}') must be in [0,1].")
         self.exploration_rate = exploration_rate
 
-        if reset_exploration_rate < 0 or reset_exploration_rate > t * omega:
+        if reset_exploration_rate is not None and (reset_exploration_rate < 0 or reset_exploration_rate > t * omega):
             raise ValueError("Reset exploration rate ('{reset_exploration_rate}') must be in [0, t * omega].")
         self.reset_exploration_rate = reset_exploration_rate
 
