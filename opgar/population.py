@@ -199,7 +199,7 @@ class Population:
                 action_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
 
                 for batch_num, transition in enumerate(transitions):
-                    transition.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}_{batch_num}.csv", index=True)
+                    transition.to_csv(f"csv/j{job_id}_transitions_{batch_start}_{batch_num}.csv", index=True)
 
                 if self.track_strategy_actions:
                     strategy_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
