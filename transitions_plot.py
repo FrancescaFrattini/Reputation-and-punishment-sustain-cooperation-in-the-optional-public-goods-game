@@ -71,6 +71,6 @@ for ax, (title, cols) in zip(axes, groups.items()):
     ax.tick_params(labelbottom=True)
     ax.legend()
 
-
+plt.suptitle(f"Transitions per Timestep grouped by source action (window = {window})", fontsize=14)
 plt.tight_layout()
 plt.savefig("transitions_subplot.png") 
