@@ -177,7 +177,8 @@ class Population:
             # Actions transitions
             for matrix in transition_matrix:
                 transition = [(str(outerKey), str(innerKey), innerVal) for outerKey, outerVal in matrix.items() 
-                            for innerKey, innerVal in outerVal.items() if innerVal != 0]
+                              for innerKey, innerVal in outerVal.items() if innerVal != 0]
+                transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
              # Reputations
             #reputation_tracker = pd.DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             #reputation_tracker.astype("float16")
