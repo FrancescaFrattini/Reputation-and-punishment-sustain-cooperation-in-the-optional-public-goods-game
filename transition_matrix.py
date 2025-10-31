@@ -9,7 +9,7 @@ label_map= {
     "None": "Loner"
 }
 
-csv_files = glob.glob("csv/j*_transitions_*_0.csv")  
+csv_files = glob.glob("csv/j*_transitions_0_9.csv")  
 dfs = [pd.read_csv(file) for file in csv_files]
 
 base = dfs[0][["Source", "Destination"]].copy()
@@ -54,4 +54,4 @@ ax_hm.set_xlabel("Target Strategy", labelpad=20)
 ax_hm.set_ylabel("Source Strategy", labelpad=20)
 
 plt.subplots_adjust(top=0.9, bottom=0.1, hspace=0.4)
-plt.savefig("transition_matrix.png", dpi=300)
+plt.savefig("transition_matrix9.png", dpi=300)

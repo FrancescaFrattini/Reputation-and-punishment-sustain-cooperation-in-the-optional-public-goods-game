@@ -15,7 +15,7 @@ rename_map = {
     "XII_NNN_1": "Q-Learner - Cooperator"
 }
 
-window = 2
+window = 50
 
 plt.figure(figsize=(10, 6))
 

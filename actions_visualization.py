@@ -15,7 +15,7 @@ rename_map = {
 }
 
 
-csv_files = glob.glob("csv/j*_granular_actions_*_0.csv")
+csv_files = glob.glob("csv/j*_granular_actions_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
@@ -23,7 +23,7 @@ df = sum(dfs) / len(dfs)
 
 df.rename(columns=rename_map, inplace=True)
 
-window = 1
+window = 50
 
 df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
 
