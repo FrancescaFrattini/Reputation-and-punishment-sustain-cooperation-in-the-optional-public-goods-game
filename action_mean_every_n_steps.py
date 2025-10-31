@@ -1,31 +1,35 @@
-import glob
-from matplotlib import pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
+import glob
 
 csv_files = glob.glob("csv/j?_actions_0.csv")
 
-dfs = [pd.read_csv(f, index_col=0) for f in csv_files]
+dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
+df = pd.concat(dfs).groupby(level=0).mean()
 
-df_mean = sum(dfs) / len(dfs)
-
+target_cols = ["Cooperative", "Non-Cooperative", "Loner"]
 rename_map = {
     "Cooperative": "Cooperate",
     "Non-Cooperative": "Defect",
-    "Loner": "Loner"
+    "Loner" : "Loner"
 }
-df_mean.rename(columns=rename_map, inplace=True)
 
-ax = df_mean.plot(
-    kind="bar",
-    stacked=True,
-    color=["tab:green", "tab:blue", "tab:orange"],
-    figsize=(10, 6)
-)
+df = df[[col for col in df.columns if col in target_cols]]
+df.rename(columns=rename_map, inplace=True)
 
-ax.set_xlabel("Timestep")
-ax.set_ylabel("Numero di agenti (media)")
-ax.set_title("Distribuzione media delle azioni per timestep")
-plt.xticks(rotation=0)
-plt.legend(title="Azione")
+window = 1
+
+grouped = df.groupby(df.index // window).mean()
+
+ax = grouped.plot(kind="bar", stacked=True, figsize=(12, 6), colormap="Paired")
+
+ax.set_xlabel(f"Timestep")
+ax.set_ylabel("Actions' Mean Distribution")
+ax.set_title(f"Actions' Mean Distribution Every {window} Steps")
+ax.set_xticks(range(len(grouped)))
+ax.set_xticklabels([f'{i*window}-{(i+1)*window - 1}' for i in grouped.index], rotation=45)
+plt.legend(title="Actions", bbox_to_anchor=(1.02, 1), loc='upper left')
 plt.tight_layout()
-plt.savefig("stacked_bar_mean.png", dpi=300)
+plt.grid(True)
+
+plt.savefig(f'barplot_{window}_steps_groups.png', dpi=300)
