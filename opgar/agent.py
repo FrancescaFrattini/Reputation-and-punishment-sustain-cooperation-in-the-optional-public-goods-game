@@ -3,6 +3,8 @@ import logging
 import random
 
 import numpy as np
+
+from opgar.utils import Utils
 from .strategy import _Strategy
 from collections import deque, Counter
 
@@ -113,7 +115,7 @@ class QLearningAgent(_Agent):
             that action.
             reward (float): The reward received after taking the last action.    
     """
-        triple = self._from_counter_to_tuple(contributions)
+        triple = Utils.from_counter_to_tuple(counter = contributions)
         idx = self.state_to_idx[triple]
         
         action_idx = self._action_to_index(self.tracker[-1])
@@ -123,17 +125,6 @@ class QLearningAgent(_Agent):
             self.q_table[self.current_state][action_idx] += self.alpha * td_error
 
         self.current_state = idx
-
-    def _from_counter_to_tuple(self, counter: Counter):
-        """
-        Converts a Counter with keys {0, 1, None} to a tuple (count_0, count_1, count_None).
-        Args:
-            counter (Counter): A Counter with keys {0, 1, None}, where None represents action 2.
-        Returns:
-            tuple: A tuple (count_0, count_1, count_2) representing the counts of actions 0, 1, and None.
-    """
-        new_counter = {(2 if k is None else k): v for k, v in counter.items()}
-        return tuple([new_counter.get(a, 0) for a in [0, 1, 2]])
 
     def _action_to_index(self, action):
             """

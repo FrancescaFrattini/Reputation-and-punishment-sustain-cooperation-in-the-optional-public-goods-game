@@ -1,6 +1,6 @@
 import warnings
 import tqdm
-
+from collections import Counter
 import functools
 
 
@@ -65,3 +65,15 @@ class Utils:
             return new_root
         else:
             return "%s$_{%s}$" % (new_root, subscript)
+        
+    @staticmethod    
+    def from_counter_to_tuple(counter: Counter):
+        """
+        Converts a Counter with keys {0, 1, None} to a tuple (count_0, count_1, count_None).
+        Args:
+            counter (Counter): A Counter with keys {0, 1, None}, where None represents action 2.
+        Returns:
+            tuple: A tuple (count_0, count_1, count_2) representing the counts of actions 0, 1, and None.
+    """
+        new_counter = {(2 if k is None else k): v for k, v in counter.items()}
+        return tuple([new_counter.get(a, 0) for a in [0, 1, 2]])
