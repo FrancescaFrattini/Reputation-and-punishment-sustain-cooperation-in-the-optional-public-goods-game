@@ -105,8 +105,8 @@ class Population:
                 logging.info(f"T={t} starting")
 
                 # group mixing at each timestep
-                if np.random.random() < self.config.delta:
-                    self.groups_of_players_IDs = self._get_groups()
+                #if np.random.random() < self.config.delta:
+                #    self.groups_of_players_IDs = self._get_groups()
 
                 for n in range(self.config.omega):
 
@@ -141,10 +141,11 @@ class Population:
                     reputation_tracker[t % t_step] = self._record_reputations()
                     self._reset_population()
 
-                    # Reset exploration rate
+                    # Reset exploration rate and group mixing
                     if reset_exploration_rate is not None and \
                             ((t - batch_start) * self.config.omega + n) % reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
+                        self.groups_of_players_IDs = self._get_groups()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
