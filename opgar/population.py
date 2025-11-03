@@ -54,7 +54,8 @@ class Population:
 
         # Granular record of actions
         self.track_strategy_actions = True
-        self.exploration_rate = self.config.exploration_rate
+        self.exploration_rate = config.exploration_rate
+        self.qtable_changes = defaultdict(int)
 
     def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True, reset_exploration_rate=None):
         """
@@ -212,6 +213,9 @@ class Population:
         if not disable_export:
             with open(f"json/j{job_id}_config.json", "w") as f:
                 json.dump(self.config.to_dict(rng_seed), f)
+
+        with open(f"json/j{job_id}_table_changes.json", "w") as f:
+            json.dump([{str(k): v} for k, v in self.qtable_changes.items()], f, indent=2)
 
         if batch_end == self.config.t or disable_export is True:
             return avg_payoffs, population, transitions, punishment_tracker, action_tracker, reputation_tracker
@@ -461,6 +465,7 @@ class Population:
                         counts[contribution] -= 1
                         reward = self.agents[playerID].utility - old_utility
                         self.agents[playerID].learn(reward=reward, avg=avg_payoff)
+                        self.qtable_changes[avg_payoff] += 1
                         
                 if self.track_strategy_actions:
                     for playerID, contribution in zip(group, group_contribution):    
