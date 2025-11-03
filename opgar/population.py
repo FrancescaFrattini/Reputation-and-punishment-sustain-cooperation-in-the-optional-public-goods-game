@@ -216,7 +216,8 @@ class Population:
                 json.dump(self.config.to_dict(rng_seed), f)
 
         with open(f"json/j{job_id}_table_changes.json", "w") as f:
-            json.dump([{str(k): v} for k, v in self.qtable_changes.items()], f, indent=2)
+            json.dump([{str(k): self.qtable_changes[k]} for k in sorted(self.qtable_changes.keys(), key=float)],
+                      f, indent=2)
 
         if batch_end == self.config.t or disable_export is True:
             return avg_payoffs, population, transitions, punishment_tracker, action_tracker, reputation_tracker
