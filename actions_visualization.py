@@ -40,11 +40,7 @@ plt.title(f'Chosen Actions Over Time by strategy (window={window})')
 plt.xlabel('Round')
 plt.ylabel('# of agents per action (Moving Avg ± Std)')
 plt.autoscale(enable=True, axis='x', tight=True)
-plt.legend(title="Action per Strategy", 
-           loc='center left',
-            bbox_to_anchor=(1.02, 0.5), 
-            borderaxespad=0,
-            frameon=True)
+plt.legend(title="Action per Strategy")
 plt.grid(True)
 plt.tight_layout(rect=[0.01, 0, 1, 1])
 plt.savefig('granular_actions_plot.png', dpi=300)
