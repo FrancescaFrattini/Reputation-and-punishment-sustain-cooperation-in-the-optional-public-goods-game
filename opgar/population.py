@@ -416,7 +416,7 @@ class Population:
             if group_actions[None] >= n - 1:
                 # OPGG skipped -> everyone gets the loner's payoff (sigma)
                 for playerID, contribution in zip(group, group_contribution):
-                    self.agents[playerID].tracker.append(None)
+                    self.agents[playerID].tracker.append(contribution)
                     self.agents[playerID].utility += self.config.sigma
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         counts = group_actions.copy()
@@ -428,7 +428,7 @@ class Population:
                 
                 if self.track_strategy_actions:
                     for playerID in group:
-                        strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+"None"] += 1
+                        strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
             else:
                 # Normal PGG, players' reward is calculated as (# of contributors * r / # of players in the group (except loners))
                 try:
@@ -448,7 +448,7 @@ class Population:
                         avg_payoff += 1
                     else:
                         avg_payoff += payoff_per_player
-                avg_payoff = avg_payoff / self.config.n
+                avg_payoff = round(avg_payoff / self.config.n, 2)
                 for playerID, contribution in zip(group, group_contribution):
                     #variable for Q-Learning agents
                     old_utility = self.agents[playerID].utility 
