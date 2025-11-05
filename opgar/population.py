@@ -486,7 +486,6 @@ class Population:
         Returns:
             pandas.Series: Contains all information regarding the present time-step.
         """
-        num_states = len(self.agents[0].q_table)
 
         # Save all results for the time-step here (possibly multiple rounds of games)
         period_result = {
@@ -503,9 +502,10 @@ class Population:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            for avg_payoff in agent.q_table.keys():
-                ranking = np.argmax(agent.q_table[avg_payoff])
-                period_result["Q values"][avg_payoff][ranking] += 1
+            if agent.strategy["behavioural"] == "XII":
+                for avg_payoff in agent.q_table.keys():
+                    ranking = np.argmax(agent.q_table[avg_payoff])
+                    period_result["Q values"][avg_payoff][ranking] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
