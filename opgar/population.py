@@ -414,7 +414,7 @@ class Population:
             if group_actions[None] >= n - 1:
                 # OPGG skipped -> everyone gets the loner's payoff (sigma)
                 for playerID, contribution in zip(group, group_contribution):
-                    self.agents[playerID].tracker.append(None)
+                    self.agents[playerID].tracker.append(contribution)
                     self.agents[playerID].utility += self.config.sigma
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         counts = group_actions.copy()
@@ -426,7 +426,7 @@ class Population:
                 
                 if self.track_strategy_actions:
                     for playerID in group:
-                        strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+"None"] += 1
+                        strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
             else:
                 # Normal PGG, players' reward is calculated as (# of contributors * r / # of players in the group (except loners))
                 try:
@@ -477,7 +477,8 @@ class Population:
         Returns:
             pandas.Series: Contains all information regarding the present time-step.
         """
-        num_states = len(self.agents[0].q_table)
+        qlearner_idx = next((i for i, a in enumerate(self.agents) if a.strategy["behavioural"] == "XII"), None)
+        num_states = len(self.agents[qlearner_idx].q_table)
 
         # Save all results for the time-step here (possibly multiple rounds of games)
         period_result = {
@@ -486,7 +487,7 @@ class Population:
             "Composition": defaultdict(float),
             "Actions per strategy": defaultdict(int),
             "Transitions": {a: {b: 0 for b in self.actions if b != a} for a in self.actions},
-            "Q values": {self.agents[0].idx_to_state[state_idx]: Counter() for state_idx in range(num_states)}
+            "Q values": {self.agents[qlearner_idx].idx_to_state[state_idx]: Counter() for state_idx in range(num_states)}
             }
         
         # Record total strategy payoffs, strategy composition
@@ -494,9 +495,10 @@ class Population:
             period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Composition Count"][agent.strategy["ID"]] += 1
             period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            for state_idx, row in enumerate(agent.q_table):
-                ranking = np.argmax(row)
-                period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
+            if agent.strategy["behavioural"] == "XII":  
+                for state_idx, row in enumerate(agent.q_table):
+                    ranking = np.argmax(row)
+                    period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
