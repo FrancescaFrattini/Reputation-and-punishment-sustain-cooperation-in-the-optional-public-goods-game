@@ -1,6 +1,6 @@
 import copy
 import logging
-
+import numpy as np
 
 class Generator:
     @staticmethod
