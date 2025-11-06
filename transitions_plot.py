@@ -73,4 +73,5 @@ for ax, (title, cols) in zip(axes, groups.items()):
 
 plt.suptitle(f"Transitions per Timestep grouped by source action (window = {window})", fontsize=14)
 plt.tight_layout()
+plt.suptitle("Number of transitions per timestep from each action", fontsize=14, y=0.99)
 plt.savefig("transitions_subplot.png") 
