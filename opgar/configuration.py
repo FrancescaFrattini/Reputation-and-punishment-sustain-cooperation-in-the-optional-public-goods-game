@@ -265,10 +265,10 @@ class Configuration:
         try:
             config_dict["composition"] = (
                 self._meta_data["strategy group"],
-                1 / len(_Strategy.strategy_groups[self._meta_data["strategy group"]]),
+                list(self.composition.values)
             )
         except:
-            config_dict["composition"] = (self._meta_data["strategy group"])
+            config_dict["composition"] = (self._meta_data["strategy group"],)
         return config_dict
 
     
