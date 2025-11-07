@@ -132,6 +132,7 @@ class _Strategy:
         "Q-Learning": all_strategies[-8:],
         "UnconditionalCooperator + Q-Learning": ["I_NNN", "XII_NNN"],
         "UnconditionalDefector + Q-Learning": ["II_NNN", "XII_NNN"],
+        "UnconditionalLoner + Q-Learning": ["III_NNN", "XII_NNN"],
         "Q-Learning no punishment": ["XII_NNN"]
     }
 
