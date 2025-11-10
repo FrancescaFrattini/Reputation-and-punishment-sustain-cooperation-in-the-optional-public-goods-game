@@ -423,6 +423,7 @@ class Population:
                         counts = group_actions.copy()
                         counts[contribution] -= 1
                         self.agents[playerID].learn(reward=self.config.sigma, contributions=counts)
+                        self.qtable_changes[Utils.from_counter_to_tuple(counts)] += 1
                 
                     if self.track_strategy_actions:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
