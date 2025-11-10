@@ -49,7 +49,7 @@ dfs = [load_and_expand(f) for f in files]
 
 df_sum = sum(dfs) / len(dfs)
 
-window = 1
+window = 30
 df_roll = df_sum.rolling(window=window, min_periods=1).mean()
 
 fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True)

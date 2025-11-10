@@ -17,7 +17,7 @@ rename_map = {
 df = df[[col for col in df.columns if col in target_cols]]
 df.rename(columns=rename_map, inplace=True)
 
-window = 1
+window = 30
 
 grouped = df.groupby(df.index // window).mean()
 
