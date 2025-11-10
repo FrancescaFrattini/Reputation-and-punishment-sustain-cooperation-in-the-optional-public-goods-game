@@ -412,20 +412,17 @@ class Population:
 
             group_actions = Counter(group_contribution)
             if group_actions[None] >= n - 1:
+                logging.debug(f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}.")
                 # OPGG skipped -> everyone gets the loner's payoff (sigma)
                 for playerID, contribution in zip(group, group_contribution):
-                    self.agents[playerID].tracker.append(contribution)
+                    #self.agents[playerID].tracker.append(contribution)
                     self.agents[playerID].utility += self.config.sigma
                     if self.agents[playerID].strategy["behavioural"] == "XII":
                         counts = group_actions.copy()
                         counts[contribution] -= 1
                         self.agents[playerID].learn(reward=self.config.sigma, contributions=counts)
-                logging.debug(
-                    f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}."
-                )
                 
-                if self.track_strategy_actions:
-                    for playerID in group:
+                    if self.track_strategy_actions:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
             else:
                 # Normal PGG, players' reward is calculated as (# of contributors * r / # of players in the group (except loners))
@@ -443,7 +440,7 @@ class Population:
                 for playerID, contribution in zip(group, group_contribution):
                     #variable for Q-Learning agents
                     old_utility = self.agents[playerID].utility 
-                    self.agents[playerID].tracker.append(contribution)
+                    #self.agents[playerID].tracker.append(contribution)
                     logging.debug("Player %s chose action %s", playerID, self.agents[playerID].tracker[-1])
                     if contribution == 1: #payoff for cooperators
                         self.agents[playerID].utility -= 1 # contribution given by the player
@@ -460,8 +457,7 @@ class Population:
                         self.agents[playerID].learn(reward=reward, contributions=counts)
                         self.qtable_changes[Utils.from_counter_to_tuple(counts)] += 1
                         
-                if self.track_strategy_actions:
-                    for playerID, contribution in zip(group, group_contribution):    
+                    if self.track_strategy_actions:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
 
                 logging.debug(
