@@ -35,9 +35,10 @@ class _Agent:
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
         """
-        return _Strategy._choose_action(
+        self.tracker.append(_Strategy._choose_action(
             self.strategy["behavioural"], average_reputation
-        )
+        ))
+        return self.tracker[-1]
 
     def choose_punishment(self, opponent_action):
         """
@@ -88,10 +89,12 @@ class QLearningAgent(_Agent):
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
-        if random.random() < epsilon or not self.q_table:
-            return random.choice(self.ACTIONS)
-        best_action_index = np.argmax(self.q_table[self.current_state])
-        return self.ACTIONS[best_action_index]
+        if random.random() < epsilon or not np.any(self.q_table[self.current_state]):
+            self.tracker.append(random.choice(self.ACTIONS))
+        else:
+            best_action_index = np.argmax(self.q_table[self.current_state])
+            self.tracker.append(self.ACTIONS[best_action_index])
+        return self.tracker[-1]
     
     def learn(self, reward, avg):
         """        
