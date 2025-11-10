@@ -9,9 +9,17 @@ and plot the results.
 """
 
 rename_map = {
-    'XII_NNN_1': "Cooperate",
-    'XII_NNN_0': "Defect",
-    'XII_NNN_None': "Loner",
+    'XII_NNN_1': "Q-Learner - Cooperate",
+    'XII_NNN_0': "Q-Learner - Defect",
+    'XII_NNN_None': "Q-Learner - Loner",
+    "I_NNN_1": "Cooperators only - Cooperate",
+    "I_NNN_0": "Cooperators only - Defect",
+    "II_NNN_1": "Defector only - Cooperate",
+    "II_NNN_0": "Defector only - Defect",
+    "II_NNN_None": "Defector only - Loner",
+    "III_NNN_1": "Loner only - Cooperate",
+    "III_NNN_0": "Loner only - Defect",
+    "III_NNN_None": "Loner only - Loner"
 }
 
 
@@ -23,7 +31,7 @@ df = sum(dfs) / len(dfs)
 
 df.rename(columns=rename_map, inplace=True)
 
-window = 100
+window = 20
 
 df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
 

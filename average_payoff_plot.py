@@ -12,10 +12,13 @@ df = sum(dfs) / len(dfs)
 rename_map = {
     "XII_NNN_None": "Q-Learner - Loner",
     "XII_NNN_0": "Q-Learner - Defector",
-    "XII_NNN_1": "Q-Learner - Cooperator"
+    "XII_NNN_1": "Q-Learner - Cooperator",
+    "I_NNN_1": "Cooperators only - Cooperate",
+    "II_NNN_0": "Defectors only - Defect",
+    "III_NNN_None": "Loners only - Loner",
 }
 
-window = 2
+window = 30
 
 plt.figure(figsize=(10, 6))
 
