@@ -7,29 +7,47 @@ import matplotlib.pyplot as plt
 
 files = sorted(glob.glob("csv/j*_q_values_rankings_0.csv"))
 
-dfs = [pd.read_csv(f, index_col=0).applymap(ast.literal_eval) for f in files]
+dfs = [pd.read_csv(f, index_col=0).map(ast.literal_eval) for f in files]
 
-mean_df = dfs[0].copy()
-for i in range(mean_df.shape[0]):
-    for j in mean_df.columns:
+all_cols = sorted(set().union(*[df.columns for df in dfs]))
+mean_df = pd.DataFrame(index=dfs[0].index, columns=all_cols)
+
+#mean_df = dfs[0].copy()
+for i in mean_df.index:
+    for j in all_cols:
         combined = defaultdict(list)
         for df in dfs:
-            d = df.loc[i, j]
-            for k, v in d.items():
-                combined[k].append(v)
-        mean_df.at[i, j] = {k: sum(v)/len(v) for k, v in combined.items()}
+            if j in df.columns:
+                d = df.at[i, j]
+                for k, v in d.items():
+                    combined[k].append(v)
+        mean_df.at[i, j] = {k: sum(v)/len(v) 
+            for k, v in combined.items()} if combined else None
 
 smoothed_df = mean_df.copy()
 
-window = 1
+window = 30
 
 for col in mean_df.columns: 
-    action_series = {a: [mean_df.at[i, col][a] for i in range(len(mean_df))]
-                     for a in [0, 1, 2]}
-    smoothed = {a: pd.Series(v).rolling(window=window, min_periods=1).mean().tolist()
-                for a, v in action_series.items()}
+    if mean_df[col].isna().all():
+        continue
+    action_series = {a: [] for a in [0, 1, 2]}
     for i in range(len(mean_df)):
-        smoothed_df.at[i, col] = {a: smoothed[a][i] for a in [0, 1, 2]}
+        d = mean_df.at[i, col]
+        if d is None:
+            for a in [0, 1, 2]:
+                action_series[a].append(d.get(a, 0))
+        else:
+            for a in [0, 1, 2]:
+                action_series[a].append(0)
+
+
+smoothed = {a: pd.Series(v).rolling(window=window, min_periods=1).mean().tolist()
+            for a, v in action_series.items()}
+
+for i in range(len(mean_df)):
+    smoothed_df.at[i, col] = {a: smoothed[a][i] for a in [0, 1, 2]}
+        #smoothed_df.at[i, col] = {a: smoothed[a][i] for a in [0, 1, 2]}
 
 action_labels = {0: "Defect", 1: "Cooperate", 2: "Loner"}
 action_colors = {0: "tab:orange", 1: "tab:green", 2: "tab:blue"}
@@ -68,4 +86,4 @@ for ax, avg in zip(axes.flat, avgs):
 
 plt.suptitle(f"Q-Learners' Q-values rankings over time (subplots by average payoff) window = {window}", size = 14)
 plt.tight_layout()
-plt.savefig("q_values_subplot0.png", dpi=300)
+plt.savefig("q_values_subplot.png", dpi=300)
