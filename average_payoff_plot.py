@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-csv_files = glob.glob("csv/j*_payoffs_*_0.csv")
+csv_files = glob.glob("csv/j*_payoffs_0.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 
