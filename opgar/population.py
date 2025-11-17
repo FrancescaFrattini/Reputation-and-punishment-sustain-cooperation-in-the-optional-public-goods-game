@@ -105,8 +105,9 @@ class Population:
                 logging.info(f"T={t} starting")
 
                 # group mixing at each timestep
-                #if np.random.random() < self.config.delta:
-                #    self.groups_of_players_IDs = self._get_groups()
+                if reset_exploration_rate is not None:
+                    if np.random.random() < self.config.delta:
+                        self.groups_of_players_IDs = self._get_groups()
 
                 for n in range(self.config.omega):
 
