@@ -56,7 +56,6 @@ class Population:
         self.exploration_rate = config.exploration_rate
         self.qtable_changes = defaultdict(int)
 
-
     def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
@@ -105,8 +104,9 @@ class Population:
                 logging.info(f"T={t} starting")
 
                 # group mixing at each timestep
-                if np.random.random() < self.config.delta:
-                    self.groups_of_players_IDs = self._get_groups()
+                if self.config.reset_exploration_rate is None:
+                    if np.random.random() < self.config.delta:
+                        self.groups_of_players_IDs = self._get_groups()
 
                 for n in range(self.config.omega):
 
@@ -141,7 +141,8 @@ class Population:
                     reputation_tracker[t % t_step] = self._record_reputations()
                     self._reset_population()
 
-                    if self.config.reset_exploration_rate and \
+                    # Reset exploration rate and group mixing
+                    if self.config.reset_exploration_rate is not None and \
                             ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
 
