@@ -169,7 +169,7 @@ class Population:
                 {avg: period_results[n]["Q values"].get(avg, {0: 0, 1: 0, 2: 0}) for avg in all_avg}
                 for n in range((batch_end - batch_start) * self.config.omega)
             ])
-            q_values_ranking = q_values_ranking.applymap(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
+            q_values_ranking = q_values_ranking.map(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
 
             # Actions
             action_tracker = pd.DataFrame(cooperative_action_tracker, columns=["Cooperative", "Non-Cooperative", "Loner"], index=range(batch_start, batch_end))
