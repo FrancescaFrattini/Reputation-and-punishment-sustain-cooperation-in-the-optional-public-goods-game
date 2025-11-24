@@ -56,6 +56,10 @@ class Population:
         self.track_strategy_actions = True
         self.exploration_rate = config.exploration_rate
         self.qtable_changes = defaultdict(int)
+        self.subgroups = self._build_subgroups()
+
+        os.makedirs(os.path.dirname("csv/"), exist_ok=True)
+        os.makedirs(os.path.dirname("json/"), exist_ok=True)
 
     def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
         """
@@ -87,7 +91,7 @@ class Population:
             t_step = self.config.t
         batches = list(range(t_start, t_end, t_step)) + [t_end]
 
-        self.groups_of_players_IDs = self._get_groups()
+        self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
         if transition_matrix_batch is None:
             transition_matrix_batch = self.config.t
@@ -104,13 +108,16 @@ class Population:
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
 
-                # group mixing at each timestep
-                if self.config.reset_exploration_rate is None:
-                    if np.random.random() < self.config.delta:
-                        self.groups_of_players_IDs = self._get_groups()
+                if t != 0 and ((t - batch_start) * self.config.omega + n) % ((batch_end - batch_start) / 3) == 0:
+                    self.subgroups = self._rotate_subgroups()
+                    self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                else:
+                    # group mixing at each timestep
+                    if self.config.reset_exploration_rate is None:
+                        if np.random.random() < self.config.delta:
+                            self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
                 for n in range(self.config.omega):
-
                     all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
 
                     # First game
@@ -146,15 +153,12 @@ class Population:
                     if self.config.reset_exploration_rate is not None and \
                             ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
-                        self.groups_of_players_IDs = self._get_groups()
+                        self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
             # ----------------------------------------------------------------------
             processing_start = time()
-
-            os.makedirs(os.path.dirname("csv/"), exist_ok=True)
-            os.makedirs(os.path.dirname("json/"), exist_ok=True)
 
             # Average Payoffs & Population State & actions transitions
             avg_payoffs = pd.concat([period_results[n]["Average Payoffs"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
@@ -245,6 +249,53 @@ class Population:
         np.random.shuffle(player_IDs)
         groups_of_players_IDs = np.reshape(player_IDs, (int(N / n), n)) 
         return groups_of_players_IDs
+    
+    def _get_groups_inside_subgroups(self, n=None):
+        """
+        Distributes subgroups of players in groups of size n
+        Args:
+            n (int, optional): Size of a single group. Defaults to None.
+        Returns:
+            list of lists representing players IDs for each group, within each subgroup
+
+        """
+
+        if n is None:
+            n = self.config.n 
+
+        final_groups = {} 
+
+        for strat_name, agent_ids in self.subgroups.items():
+
+            agent_ids = np.array(agent_ids) 
+            np.random.shuffle(agent_ids)   
+            groups = np.reshape(agent_ids, (int(len(agent_ids) / n), n))
+            final_groups[strat_name] = groups.tolist()
+
+        return sum(final_groups.values(), [])  # flatten the list of lists
+
+    def _rotate_subgroups(self):
+        """
+        Rotates agents' subgroups
+        Q-Learner agents rotate this way:
+        I_NNN -> II_NNN -> III_NNN -> I_NNN
+        """
+        strat_cooperate = [agent.ID for agent in self.agents_by_strategy.get("I_NNN", [])]
+        strat_defect = [agent.ID for agent in self.agents_by_strategy.get("II_NNN", [])]
+        strat_loner = [agent.ID for agent in self.agents_by_strategy.get("III_NNN", [])]
+        old_groups = self.q_learner_groups.copy()  
+
+        self.q_learner_groups["I_NNN"] = old_groups["III_NNN"]  
+        self.q_learner_groups["II_NNN"] = old_groups["I_NNN"]   
+        self.q_learner_groups["III_NNN"] = old_groups["II_NNN"]
+
+        subgroups = {
+            "cooperator": strat_cooperate + self.q_learner_groups["I_NNN"],
+            "defector": strat_defect + self.q_learner_groups["II_NNN"],
+            "loner": strat_loner + self.q_learner_groups["III_NNN"]
+        }
+
+        return subgroups
 
     def _record_reputations(self):
         """
@@ -476,7 +527,6 @@ class Population:
                     f"to {total_participating} agents"
                 )
 
-
     def _get_period_result(self, transitions):
         """
         Get period results in a pandas Series.
@@ -531,11 +581,9 @@ class Population:
         classed_series.index.names = ["Statistic", "Strategy"]
         return classed_series
 
-
     def _evolve_group_selection(self, transitions):
         """
         Evolution implementation using group-selection. 
-
         Players encounter another player from their own group with probability 1-m and from another randomly chosen 
         group with probability m. An individual i who encounters an individual j imitates j with probability 
         W_j / (W_j + W_i) where W_x is the payoff of individual x including the costs of giving or receiving punishment.
@@ -663,6 +711,40 @@ class Population:
                 id_counter += 1
 
         return agents    
+
+    def _build_subgroups(self):
+        """
+        TODO documentation
+        """
+
+        strat_cooperate = [agent.ID for agent in self.agents_by_strategy.get("I_NNN", [])]
+        strat_defect = [agent.ID for agent in self.agents_by_strategy.get("II_NNN", [])]
+        strat_loner = [agent.ID for agent in self.agents_by_strategy.get("III_NNN", [])]
+        q_learner = [agent.ID for agent in self.agents_by_strategy.get("XII_NNN", [])]
+        np.random.shuffle(q_learner)
+
+        total_q_learner = len(q_learner)
+        q_learner_per_group = total_q_learner // 3
+        leftovers = total_q_learner % 3
+
+        sizes = [q_learner_per_group] * 3
+        for i in range(leftovers):
+            sizes[i] += 1
+
+        self.q_learner_groups = {"I_NNN": [], "II_NNN": [], "III_NNN": [] }
+
+        index = 0
+        for strat_name, size in zip(self.q_learner_groups.keys(), sizes):
+            self.q_learner_groups[strat_name] = q_learner[index:index+size]
+            index += size
+
+        subgroups = {
+            "cooperator": strat_cooperate + self.q_learner_groups["I_NNN"],
+            "defector": strat_defect + self.q_learner_groups["II_NNN"],
+            "loner": strat_loner + self.q_learner_groups["III_NNN"]
+        }
+
+        return subgroups
 
     def _reset_population(self):
         """
