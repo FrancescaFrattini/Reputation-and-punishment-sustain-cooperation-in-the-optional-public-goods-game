@@ -19,18 +19,19 @@ logging.basicConfig(
 only_cooperate_and_learner = _Strategy.strategy_groups["UnconditionalCooperator + Q-Learning"]
 only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-Learning"]
 only_loner_and_learner = _Strategy.strategy_groups["UnconditionalLoner + Q-Learning"]
-only_qlearner = _Strategy.strategy_groups["Q-Learning no punishment"]
+only_qlearner = _Strategy.strategy_groups["Q-Learning"]
+defined_strategies_and_learner = _Strategy.strategy_groups["purenopunish + Q-Learning"]
 
 config = Configuration(
-    N = 500,
+    N = 60,
     n = 5, 
-    t = 500, 
+    t = 9, 
     r = 3, 
     sigma = 1,
-    composition = dict(zip(only_loner_and_learner, [0.75, 0.25])),
+    composition = {}.fromkeys(defined_strategies_and_learner, 1 / len(defined_strategies_and_learner)),
     norm = None,
-    omega = 10, 
-    strategy_group = "UnconditionalLoner + Q-Learning",
+    omega = 1, 
+    strategy_group = "purenopunish + Q-Learning",
     alpha = 0.1,
     exploration_rate = 1.0,
     discount_factor = 0.9,
@@ -45,4 +46,4 @@ for id in range(0, 1):
     random.seed(seed)
     model = Population(config)
     np.random.seed(seed)
-    results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=50)
+    results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=1)

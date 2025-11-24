@@ -133,7 +133,8 @@ class _Strategy:
         "UnconditionalCooperator + Q-Learning": ["I_NNN", "XII_NNN"],
         "UnconditionalDefector + Q-Learning": ["II_NNN", "XII_NNN"],
         "UnconditionalLoner + Q-Learning": ["III_NNN", "XII_NNN"],
-        "Q-Learning no punishment": ["XII_NNN"]
+        "Q-Learning": ["XII_NNN"],
+        "purenopunish + Q-Learning": all_strategies[:24:8] + ["XII_NNN"],
     }
 
     strategy_name_mapping = {
