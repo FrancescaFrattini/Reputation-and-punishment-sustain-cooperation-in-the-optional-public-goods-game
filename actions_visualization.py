@@ -14,6 +14,7 @@ rename_map = {
     'XII_NNN_None': "Q-Learner - Loner",
     "I_NNN_1": "Cooperators only - Cooperate",
     "I_NNN_0": "Cooperators only - Defect",
+    "I_NNN_None": "Cooperators only - Loner",
     "II_NNN_1": "Defector only - Cooperate",
     "II_NNN_0": "Defector only - Defect",
     "II_NNN_None": "Defector only - Loner",
@@ -33,15 +34,16 @@ df.rename(columns=rename_map, inplace=True)
 
 window = 20
 
-df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo']
+df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo', 'purple', 'cyan']
+df_linestyle = ['--', '-.', ':']
 
 plt.figure(figsize=(15, 6))
 
-for col, color in zip(df.columns, cycle(df_colors)):
+for col, color, style in zip(df.columns, cycle(df_colors), cycle(df_linestyle)):
     rolling_mean = df[col].rolling(window=window, min_periods=1).mean()
     rolling_std = df[col].rolling(window=window, min_periods=1).std()
 
-    plt.plot(df.index, rolling_mean, label=col, color=color)
+    plt.plot(df.index, rolling_mean, label=col, color=color, linestyle=style)
     plt.fill_between(df.index, rolling_mean - rolling_std, rolling_mean + rolling_std, color=color, alpha=0.2)
 
 plt.title(f'Chosen Actions Over Time by strategy (window={window})')
