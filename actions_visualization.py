@@ -9,20 +9,19 @@ and plot the results.
 """
 
 rename_map = {
-    'XII_NNN_1': "Q-Learner - Cooperate",
-    'XII_NNN_0': "Q-Learner - Defect",
-    'XII_NNN_None': "Q-Learner - Loner",
+    'XII_I_NNN_1': "Q-Learner with Cooperators - Cooperate",
+    'XII_I_NNN_0': "Q-Learner with Cooperators - Defect",
+    'XII_I_NNN_None': "Q-Learner with Cooperators - Loner",
+    'XII_II_NNN_1': "Q-Learner with Defectors - Cooperate",
+    'XII_II_NNN_0': "Q-Learner with Defectors - Defect",
+    'XII_II_NNN_None': "Q-Learner with Defectors - Loner",
+    'XII_III_NNN_1': "Q-Learner with Loners - Cooperate",
+    'XII_III_NNN_0': "Q-Learner with Loners - Defect",
+    'XII_III_NNN_None': "Q-Learner with Loners - Loner",
     "I_NNN_1": "Cooperators only - Cooperate",
-    "I_NNN_0": "Cooperators only - Defect",
-    "I_NNN_None": "Cooperators only - Loner",
-    "II_NNN_1": "Defector only - Cooperate",
     "II_NNN_0": "Defector only - Defect",
-    "II_NNN_None": "Defector only - Loner",
-    "III_NNN_1": "Loner only - Cooperate",
-    "III_NNN_0": "Loner only - Defect",
     "III_NNN_None": "Loner only - Loner"
 }
-
 
 csv_files = glob.glob("csv/j*_granular_actions_0.csv")
 
@@ -31,10 +30,10 @@ dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = sum(dfs) / len(dfs)
 
 df.rename(columns=rename_map, inplace=True)
+df = df.loc[:, (df != 0).any()]
+window = 1
 
-window = 20
-
-df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo', 'purple', 'cyan']
+df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo', 'purple', 'magenta']
 df_linestyle = ['--', '-.', ':']
 
 plt.figure(figsize=(15, 6))
