@@ -116,7 +116,9 @@ class Population:
                             self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
                 for n in range(self.config.omega):
-                    all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
+                    #all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
+                    all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_I_NNN", "XII_II_NNN", "XII_III_NNN", 
+                                                            "I_NNN", "II_NNN", "III_NNN"], ["1", "0", "None"])], 0)
 
                     # First game
                     self._play_public_good_game(all_action_tracker)
@@ -479,8 +481,10 @@ class Population:
                         counts[contribution] -= 1
                         self.agents[playerID].learn(reward=self.config.sigma, contributions=counts)
                         self.qtable_changes[Utils.from_counter_to_tuple(counts)] += 1
-                
-                    if self.track_strategy_actions:
+                        strategy_action_tracker[self.agents[playerID].strategy["behavioural"] + "_" + next
+                            (k for k, v in self.q_learner_groups.items() if self.agents[playerID].ID in v) + "_" + 
+                            str(contribution)] += 1
+                    else:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
             else:
                 # Normal PGG, players' reward is calculated as (# of contributors * r / # of players in the group (except loners))
@@ -515,9 +519,11 @@ class Population:
                         self.agents[playerID].learn(reward=reward, contributions=counts)
                         self.qtable_changes[Utils.from_counter_to_tuple(counts)] += 1
                         
-                    if self.track_strategy_actions:
+                        strategy_action_tracker[self.agents[playerID].strategy["behavioural"] + "_" + next
+                            (k for k, v in self.q_learner_groups.items() if self.agents[playerID].ID in v) + "_" + 
+                            str(contribution)] += 1
+                    else:
                         strategy_action_tracker[self.agents[playerID].strategy["ID"]+"_"+str(contribution)] += 1
-
                 logging.debug(
                     f"Group of agents ({group}) played the PGG, average payoff was {round(payoff_per_player, 2)} each "
                     f"to {total_participating} agents"
@@ -545,13 +551,19 @@ class Population:
         
         # Record total strategy payoffs, strategy composition
         for agent in self.agents:
-            period_result["Payoffs"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
-            period_result["Composition Count"][agent.strategy["ID"]] += 1
-            period_result["Actions per strategy"][agent.strategy["ID"]+"_"+str(agent.tracker[-1])] += 1
-            if agent.strategy["behavioural"] == "XII":  
+            period_result["Composition Count"][agent.strategy["behavioural"]] += 1
+                
+            if agent.strategy["behavioural"] == "XII":
                 for state_idx, row in enumerate(agent.q_table):
                     ranking = np.argmax(row)
                     period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
+                period_result["Payoffs"][agent.strategy["behavioural"] + "_" + next(k for k, v in self.q_learner_groups.items() 
+                                                        if agent.ID in v) + "_" + str(agent.tracker[-1])] += (agent.utility - 1)
+                period_result["Actions per strategy"][agent.strategy["behavioural"] + "_" + next
+                            (k for k, v in self.q_learner_groups.items() if agent.ID in v) + "_" + str(agent.tracker[-1])] += 1
+            else:
+                period_result["Payoffs"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
+                period_result["Actions per strategy"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += 1
 
             # actions transition tracker
             if len(agent.tracker) >= 2:
