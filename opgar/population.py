@@ -119,7 +119,8 @@ class Population:
 
                 for n in range(self.config.omega):
                     #all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
-                    all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_I_NNN", "XII_II_NNN", "XII_III_NNN", 
+                    all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_I_NNN", "XII_II_NNN", "XII_III_NNN",
+                                                                    "I_NNN", "II_NNN", "III_NNN"], ["1", "0", "None"])], 0) 
 
                     # First game
                     self._play_public_good_game(all_action_tracker)
