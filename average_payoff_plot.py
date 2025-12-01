@@ -10,9 +10,18 @@ dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
 df = sum(dfs) / len(dfs)
 
 rename_map = {
-    "XII_NNN_None": "Q-Learner - Loner",
-    "XII_NNN_0": "Q-Learner - Defector",
-    "XII_NNN_1": "Q-Learner - Cooperator",
+    "I_1": "Cooperators only - Cooperate",
+    "II_0": "Defectors only - Defect",
+    "III_None": "Loners only - Loner",
+    "XII_I_NNN_None": "Q-Learners with Cooperators - Loner",
+    "XII_I_NNN_0": "Q-Learners with Cooperators - Defect",
+    "XII_I_NNN_1": "Q-Learners with Cooperators - Cooperate",
+    "XII_II_NNN_None": "Q-Learners with Defectors - Loner",
+    "XII_II_NNN_0": "Q-Learners with Defectors - Defect",
+    "XII_II_NNN_1": "Q-Learners with Defectors - Cooperate",
+    "XII_III_NNN_None": "Q-Learners with Loners - Loner",
+    "XII_III_NNN_0": "Q-Learners with Loners - Defect",
+    "XII_III_NNN_1": "Q-Learners with Loners - Cooperate",
     "I_NNN_1": "Cooperators only - Cooperate",
     "II_NNN_0": "Defectors only - Defect",
     "III_NNN_None": "Loners only - Loner",

@@ -1,4 +1,5 @@
 import glob
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import cycle
@@ -23,7 +24,6 @@ rename_map = {
     "III_NNN_None": "Loner only - Loner"
 }
 
-
 csv_files = glob.glob("csv/j*_granular_actions_*.csv")
 
 dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
@@ -34,16 +34,17 @@ df.rename(columns=rename_map, inplace=True)
 df = df.loc[:, (df != 0).any()]
 window = 1
 
-df_colors = ['maroon', 'blue', 'green', 'red', 'slategray', 'indigo', 'purple', 'magenta']
-df_linestyle = ['--', '-.', ':']
+num_cols = len(df.columns)
+colors = plt.cm.Dark2(np.linspace(0, 1, num_cols))
+df_linestyle = ['--', '-.', ':', '-']
 
 plt.figure(figsize=(15, 6))
 
-for col, color in zip(df.columns, cycle(df_colors)):
+for col, color, linestyle in zip(df.columns, colors, cycle(df_linestyle)):
     rolling_mean = df[col].rolling(window=window, min_periods=1).mean()
     rolling_std = df[col].rolling(window=window, min_periods=1).std()
 
-    plt.plot(df.index, rolling_mean, label=col, color=color)
+    plt.plot(df.index, rolling_mean, label=col, color=color, linestyle=linestyle)
     plt.fill_between(df.index, rolling_mean - rolling_std, rolling_mean + rolling_std, color=color, alpha=0.2)
 
 plt.title(f'Chosen Actions Over Time by strategy (window={window})')
