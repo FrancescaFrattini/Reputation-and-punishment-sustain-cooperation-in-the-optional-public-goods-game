@@ -6,6 +6,7 @@ from itertools import product
 import os
 import random
 from time import time
+from more_itertools import unzip
 import numpy as np
 import pandas as pd
 from tqdm import trange
@@ -119,10 +120,10 @@ class Population:
                         for strategy, group in self.q_learner_groups.items():
                             f.write(f"group {strategy} \n")
                             for id in group:
-                                qtable = self.agents[id].q_table.tolist()
+                                qtable = self.agents[id].q_table
                                 f.write(f"{id} \n")
-                                for i, row in enumerate(qtable):
-                                    f.write(f'{self.agents[id].idx_to_state[i], row}\n')      
+                                for avg in qtable.keys():
+                                    f.write(f'{avg, qtable[avg]}\n')      
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
