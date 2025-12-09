@@ -100,6 +100,7 @@ class QLearningAgent(_Agent):
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
+        #if still exploring or no Q-values for current state, choose random action
         if random.random() < epsilon or not np.any(self.q_table[self.current_state]):
             self.tracker.append(random.choice(self.ACTIONS))
         else:
@@ -118,6 +119,7 @@ class QLearningAgent(_Agent):
             that action.
             reward (float): The reward received after taking the last action.    
     """
+        
         triple = Utils.from_counter_to_tuple(counter = contributions)
         idx = self.state_to_idx[triple]
         

@@ -106,9 +106,24 @@ class Population:
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
 
-                if t != 0 and ((t - batch_start) * self.config.omega + n) % ((batch_end - batch_start) / 3) == 0:
+                if t != 0 and ((t - batch_start) * self.config.omega) % ((batch_end - batch_start) * self.config.omega / 3) == 0:
+                    # DEBUG
+                    with open(f"subgroups_round_{((t - batch_start) * self.config.omega) % (batch_end - batch_start)}.txt", "w") as f:
+                        for strat, members in self.subgroups.items():
+                            f.write(strat + "\n")
+                            for id in members:
+                                f.write(f"{id, self.agents[id].strategy['behavioural']}\n")
+                    with open(f"q_table_round_{((t - batch_start) * self.config.omega) % (batch_end - batch_start)}.txt", "w") as f:
+                        for strategy, group in self.q_learner_groups.items():
+                            f.write(f"group {strategy} \n")
+                            for id in group:
+                                qtable = self.agents[id].q_table.tolist()
+                                f.write(f"{id} \n")
+                                for i, row in enumerate(qtable):
+                                    f.write(f'{self.agents[id].idx_to_state[i], row}\n')      
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+
                 else:
                     # group mixing at each timestep
                     if self.config.reset_exploration_rate is None:
@@ -269,7 +284,6 @@ class Population:
         final_groups = {} 
 
         for strat_name, agent_ids in self.subgroups.items():
-
             agent_ids = np.array(agent_ids) 
             np.random.shuffle(agent_ids)   
             groups = np.reshape(agent_ids, (int(len(agent_ids) / n), n))
@@ -286,11 +300,11 @@ class Population:
         strat_cooperate = [agent.ID for agent in self.agents_by_strategy.get("I_NNN", [])]
         strat_defect = [agent.ID for agent in self.agents_by_strategy.get("II_NNN", [])]
         strat_loner = [agent.ID for agent in self.agents_by_strategy.get("III_NNN", [])]
-        old_groups = self.q_learner_groups.copy()  
-
-        self.q_learner_groups["I_NNN"] = old_groups["III_NNN"]  
-        self.q_learner_groups["II_NNN"] = old_groups["I_NNN"]   
-        self.q_learner_groups["III_NNN"] = old_groups["II_NNN"]
+        old_groups = self.q_learner_groups.copy() 
+        self.q_learner_groups.clear()
+        self.q_learner_groups["II_NNN"] = old_groups["III_NNN"]  
+        self.q_learner_groups["I_NNN"] = old_groups["II_NNN"]   
+        self.q_learner_groups["III_NNN"] = old_groups["I_NNN"]
 
         subgroups = {
             "cooperator": strat_cooperate + self.q_learner_groups["I_NNN"],
@@ -299,8 +313,6 @@ class Population:
         }
 
         return subgroups
-
-
 
     def _record_reputations(self):
         """
@@ -470,6 +482,7 @@ class Population:
             #   2. Any non-zero amount of Cooperators/Defectors plays PGG as normal
 
             group_actions = Counter(group_contribution)
+
             if group_actions[None] >= n - 1:
                 logging.debug(f"Group of agents ({group}) did not play the PGG, everyone receives {self.config.sigma}.")
                 # OPGG skipped -> everyone gets the loner's payoff (sigma)
@@ -745,8 +758,8 @@ class Population:
         self.q_learner_groups = {"I_NNN": [], "II_NNN": [], "III_NNN": [] }
 
         index = 0
-        for strat_name, size in zip(self.q_learner_groups.keys(), sizes):
-            self.q_learner_groups[strat_name] = q_learner[index:index+size]
+        for strategy, size in zip(self.q_learner_groups.keys(), sizes):
+            self.q_learner_groups[strategy] = q_learner[index:index+size]
             index += size
 
         subgroups = {
