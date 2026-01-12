@@ -24,18 +24,28 @@ rename_map = {
     "III_NNN_None": "Loner only - Loner"
 }
 
-csv_files = glob.glob("csv/j*_granular_actions_0.csv")
+columns_to_plot = [
+    "XII_III_NNN_1",
+    "XII_III_NNN_0",
+    "XII_III_NNN_None"
+]
 
-dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
+dfs = []
 
-df = sum(dfs) / len(dfs)
+csv_files = glob.glob("csv/j*_granular_actions_*.csv")
+
+for file in csv_files:
+    df = pd.read_csv(file, index_col=0)
+    dfs.append(df[columns_to_plot])
+
+df = pd.concat(dfs).groupby(level=0).mean()
 
 df.rename(columns=rename_map, inplace=True)
 df = df.loc[:, (df != 0).any()]
-window = 1
+window = 50
 
 num_cols = len(df.columns)
-colors = plt.cm.Dark2(np.linspace(0, 1, num_cols))
+colors = plt.get_cmap("tab10").colors
 df_linestyle = ['--', '-.', ':', '-']
 
 plt.figure(figsize=(15, 6))
@@ -54,4 +64,4 @@ plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action per Strategy")
 plt.grid(True)
 plt.tight_layout(rect=[0.01, 0, 1, 1])
-plt.savefig('granular_actions_plot.png', dpi=300)
+plt.savefig('granular_actions_plotLoners.png', dpi=300)

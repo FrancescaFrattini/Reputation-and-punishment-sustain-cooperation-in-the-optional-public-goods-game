@@ -3,12 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-csv_files = glob.glob("csv/j*_payoffs_0.csv")
-
-dfs = [pd.read_csv(file, index_col=0) for file in csv_files]
-
-df = sum(dfs) / len(dfs)
-
 rename_map = {
     "I_1": "Cooperators only - Cooperate",
     "II_0": "Defectors only - Defect",
@@ -26,6 +20,22 @@ rename_map = {
     "II_NNN_0": "Defectors only - Defect",
     "III_NNN_None": "Loners only - Loner",
 }
+
+columns_to_plot = [
+    "XII_III_NNN_1",
+    "XII_III_NNN_0",
+    "XII_III_NNN_None"
+]
+
+csv_files = glob.glob("csv/j*_payoffs_0.csv")
+
+dfs = []
+
+for file in csv_files:
+    df = pd.read_csv(file, index_col=0)
+    dfs.append(df[columns_to_plot])
+
+df = pd.concat(dfs).groupby(level=0).mean()
 
 window = 50
 
@@ -52,4 +62,4 @@ plt.legend(title="Action")
 plt.grid(True, linestyle="--", alpha=0.6)
 
 plt.tight_layout()
-plt.savefig('average_payoff_by_action.png', dpi=300)
+plt.savefig('average_payoff_by_actionLoners.png', dpi=300)
