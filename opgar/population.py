@@ -54,7 +54,6 @@ class Population:
 
         # Granular record of actions
         self.track_strategy_actions = True
-        self.exploration_rate = 0
 
     def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=1, record_actions_by_strategy=True, reset_epsilon=None):
         """
@@ -88,7 +87,7 @@ class Population:
 
         self.groups_of_players_IDs = self._get_groups()
 
-        self.exploration_rate = config.exploration_rate
+        self.exploration_rate = self.config.exploration_rate
 
         for (batch_start, batch_end) in zip(batches[:-1], batches[1:]):
             period_results = {}.fromkeys(range(batch_start, batch_end))
@@ -102,13 +101,8 @@ class Population:
             logging.info(f"batch start {batch_start} batch end {batch_end}")
             logging.info(f"transition matrix: {transition_matrix}")
 
-
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
-
-                # Reset exploration rate
-                if self.reset_epsilon is not None and t % self.reset_epsilon == 0:
-                    self.epsilon = self.config.epsilon
 
                 # group mixing at each timestep
                 if np.random.random() < self.config.delta:
@@ -130,7 +124,7 @@ class Population:
                     punishment_tracker[t] = self._punish(punishment_tracker[t])
 
                 if self.exploration_rate > self.config.minimum_exploration_rate:
-                    self.exploration_rate *= 0.9995
+                    self.exploration_rate *= self.config.epsilon_decay
 
                 # Neaten results
                 period_results[t] = self._get_period_result(transition_matrix[int(t / transition_matrix_batch)])
@@ -149,6 +143,11 @@ class Population:
                 cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
                 reputation_tracker[t % t_step] = self._record_reputations()
                 self._reset_population()
+
+                if self.config.reset_exploration_rate is not None and \
+                            ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
+                    self.exploration_rate = self.config.exploration_rate
+                    self.groups_of_players_IDs = self._get_groups()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
@@ -212,7 +211,6 @@ class Population:
 
                 if self.track_strategy_actions:
                     strategy_actions_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
-
             processing_end = time()
             logging.info(f"---> Export Batch Data ---> {processing_start-processing_end} seconds elapsed")
 
@@ -406,7 +404,7 @@ class Population:
 
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.config.exploration_rate)
+                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.exploration_rate)
                 for ID in group
             ]
             # Possible cases

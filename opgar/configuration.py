@@ -24,6 +24,7 @@ class Configuration:
             exploration_rate(float): The exploration rate for Q-Learning agents, used in epsilon-greedy action selection.
             delta(float): Probability of an agent changing its group.
             minimum_exploration_rate (float): Minimum exploration rate for Q-Learning agents.
+            epsilon_decay(float): Decay rate for exploration rate in Q-Learning agents.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -56,10 +57,6 @@ class Configuration:
         "sigma",
         "n",
         "N",
-        "gamma",
-        "beta",
-        "m",
-        "epsilon",
         "omega",
         "_meta_data",
         "alpha", 
@@ -67,6 +64,8 @@ class Configuration:
         "exploration_rate",
         "delta",
         "minimum_exploration_rate",
+        "reset_exploration_rate",
+        "epsilon_decay",
     ]
 
     def __init__(
@@ -78,10 +77,6 @@ class Configuration:
         t: int,
         composition: dict,
         norm: str,
-        gamma: float,
-        beta: float,
-        m: float,
-        epsilon: float,
         strategy_group: str, 
         omega: int,
         alpha: float,
@@ -89,6 +84,8 @@ class Configuration:
         exploration_rate: float,
         delta: float,
         minimum_exploration_rate: float,
+        reset_exploration_rate: int,
+        epsilon_decay: float,
     ):
         self._meta_data = {}
 
@@ -175,6 +172,7 @@ class Configuration:
             )
         self.n = n
 
+""" 
         # ----------------------------------------------------------------------
         # PUNISHMENT COST & PENALTY
         # ----------------------------------------------------------------------
@@ -192,12 +190,16 @@ class Configuration:
         self.gamma = gamma
         self.beta = beta
 
+"""        
+
         # ----------------------------------------------------------------------
         # PROBABILITY OF FURTHER GAMES IN SAME PERIOD
         # ----------------------------------------------------------------------
         if omega < 1:
             raise ValueError("Probability of further interactions omega ('{omega}') must be within [1,inf).")
         self.omega = omega
+
+"""        
 
         # ----------------------------------------------------------------------
         # GROUP-WIDE vs POPULATION-WIDE EVOLUTION 
@@ -207,9 +209,11 @@ class Configuration:
         if m < 0 or m > 1:
             raise ValueError("Probability of mutation vs evolution m ('{m}') must be in [0,1].")
         self.m = m
+
         if epsilon < 0 or epsilon > 1:
             raise ValueError("Probability of mutation epsilon ('{epsilon}') must be in [0,1].")
         self.epsilon = epsilon
+"""        
 
         # -----------------------------------------------------------------------
         # Q-LEARNING PARAMETERS
@@ -227,9 +231,17 @@ class Configuration:
             raise ValueError("Exploration rate epsilon ('{exploration_rate}') must be in [0,1].")
         self.exploration_rate = exploration_rate
 
+        if reset_exploration_rate is not None and (reset_exploration_rate < 0 or reset_exploration_rate > t * omega):
+            raise ValueError("Reset exploration rate ('{reset_exploration_rate}') must be in [0, t * omega].")
+        self.reset_exploration_rate = reset_exploration_rate
+
         if minimum_exploration_rate < 0 or minimum_exploration_rate > 1:
             raise ValueError("Minimum exploration rate ('{minimum_exploration_rate}') must be in [0,1].")
         self.minimum_exploration_rate = minimum_exploration_rate
+
+        if epsilon_decay < 0 or epsilon_decay > 1: 
+            raise ValueError("Epsilon decay ('{epsilon_decay}') must be in [0,1].")
+        self.epsilon_decay = epsilon_decay
 
         # ------------------------------------------------------------------------
         # PROBABILITY OF AN AGENT TO CHANGE ITS BELONGING GROUP
