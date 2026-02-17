@@ -7,7 +7,7 @@ def load_and_expand(path: str) -> pd.DataFrame:
     df = pd.read_csv(path, index_col=0, keep_default_na=False)
     df.columns = ["1", "0", "None"]
 
-    df = df.applymap(ast.literal_eval)
+    df = df.map(ast.literal_eval)
 
     out = pd.DataFrame(index=df.index)
 
