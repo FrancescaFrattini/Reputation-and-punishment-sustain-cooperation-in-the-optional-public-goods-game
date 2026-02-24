@@ -108,8 +108,6 @@ class Population:
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
 
-                logging.info(f"{(t - batch_start) * self.config.omega}")
-
                 if (t - batch_start) * self.config.omega in {
                     ((batch_end - batch_start) * self.config.omega // 3 // 1000) * 1000,
                     (2 * (batch_end - batch_start) * self.config.omega // 3 // 1000) * 1000
@@ -218,7 +216,6 @@ class Population:
                 transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
              # Reputations
             reputation = pd.DataFrame([reputation_tracker.get(n, (0, 0, 0)) for n in range((batch_end - batch_start) * self.config.omega)], columns=["good", "ok", "bad"])
-            #DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             reputation = reputation.astype("float16")
 
             # Punishments
