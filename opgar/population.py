@@ -173,13 +173,15 @@ class Population:
                             self._get_population_fitness(period_results[(t - batch_start) * self.config.omega + n])
                     cooperative_action_tracker[t % t_step] = self._record_cooperative_actions()
                     reputation_tracker[(t - batch_start) * self.config.omega + n] = self._record_reputations()
-                    self._reset_population()
 
                     # Reset exploration rate and group mixing
                     if self.config.reset_exploration_rate is not None and \
                             ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
                         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+
+                #population reset at the end of each timestep
+                self._reset_population()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
