@@ -21,17 +21,18 @@ only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-L
 only_loner_and_learner = _Strategy.strategy_groups["UnconditionalLoner + Q-Learning"]
 only_qlearner = _Strategy.strategy_groups["Q-Learning"]
 defined_strategies_and_learner = _Strategy.strategy_groups["purenopunish + Q-Learning"]
+reputation_and_learner = _Strategy.strategy_groups["cooperatorsnopunish + Q-Learning"]
 
 config = Configuration(
     N = 60,
     n = 5, 
-    t = 9, 
+    t = 100, 
     r = 3, 
     sigma = 1,
-    composition = {}.fromkeys(defined_strategies_and_learner, 1 / len(defined_strategies_and_learner)),
-    norm = None,
-    omega = 1, 
-    strategy_group = "purenopunish + Q-Learning",
+    composition = {}.fromkeys(reputation_and_learner, 1 / len(reputation_and_learner)),
+    norm = "Defector",
+    omega = 100, 
+    strategy_group = "cooperatorsnopunish + Q-Learning",
     alpha = 0.1,
     exploration_rate = 1.0,
     discount_factor = 0.9,
@@ -46,4 +47,4 @@ for id in range(0, 1):
     random.seed(seed)
     model = Population(config)
     np.random.seed(seed)
-    results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=1)
+    results = model.simulate(job_id=id, rng_seed=seed, transition_matrix_batch=10)
