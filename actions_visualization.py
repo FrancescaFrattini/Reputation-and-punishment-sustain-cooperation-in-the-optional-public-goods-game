@@ -10,24 +10,24 @@ and plot the results.
 """
 
 rename_map = {
-    'XII_I_NNN_1': "Q-Learner with Cooperators - Cooperate",
-    'XII_I_NNN_0': "Q-Learner with Cooperators - Defect",
-    'XII_I_NNN_None': "Q-Learner with Cooperators - Loner",
-    'XII_II_NNN_1': "Q-Learner with Defectors - Cooperate",
-    'XII_II_NNN_0': "Q-Learner with Defectors - Defect",
-    'XII_II_NNN_None': "Q-Learner with Defectors - Loner",
-    'XII_III_NNN_1': "Q-Learner with Loners - Cooperate",
-    'XII_III_NNN_0': "Q-Learner with Loners - Defect",
-    'XII_III_NNN_None': "Q-Learner with Loners - Loner",
-    "I_NNN_1": "Cooperators only - Cooperate",
-    "II_NNN_0": "Defector only - Defect",
-    "III_NNN_None": "Loner only - Loner"
+    'XII_IV_NNN_1': "Q-Learner with C^(0, D) - Cooperate",
+    'XII_IV_NNN_0': "Q-Learner with C^(0, D) - Defect",
+    'XII_IV_NNN_None': "Q-Learner with C^(0, D) - Loner",
+    'XII_V_NNN_1': "Q-Learner with C^(1, D) - Cooperate",
+    'XII_V_NNN_0': "Q-Learner with C^(1, D) - Defect",
+    'XII_V_NNN_None': "Q-Learner with C^(1, D) - Loner",
+    'XII_VI_NNN_1': "Q-Learner with C^(0, L) - Cooperate",
+    'XII_VI_NNN_0': "Q-Learner with C^(0, L) - Defect",
+    'XII_VI_NNN_None': "Q-Learner with C^(0, L) - Loner",
+    'XII_VII_NNN_1': "Q-Learner with C^(1, L) - Cooperate",
+    'XII_VII_NNN_0': "Q-Learner with C^(1, L) - Defect",
+    'XII_VII_NNN_None': "Q-Learner with C^(1, L) - Loner",
 }
 
 columns_to_plot = [
-    "XII_III_NNN_1",
-    "XII_III_NNN_0",
-    "XII_III_NNN_None"
+    "XII_VI_NNN_1",
+    "XII_VI_NNN_0",
+    "XII_VI_NNN_None"
 ]
 
 dfs = []
@@ -64,4 +64,4 @@ plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action per Strategy")
 plt.grid(True)
 plt.tight_layout(rect=[0.01, 0, 1, 1])
-plt.savefig('granular_actions_plotLoners.png', dpi=300)
+plt.savefig('granular_actions_plotC(0, L).png', dpi=300)
