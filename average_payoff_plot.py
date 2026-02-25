@@ -4,27 +4,24 @@ import matplotlib.pyplot as plt
 
 
 rename_map = {
-    "I_1": "Cooperators only - Cooperate",
-    "II_0": "Defectors only - Defect",
-    "III_None": "Loners only - Loner",
-    "XII_I_NNN_None": "Q-Learners with Cooperators - Loner",
-    "XII_I_NNN_0": "Q-Learners with Cooperators - Defect",
-    "XII_I_NNN_1": "Q-Learners with Cooperators - Cooperate",
-    "XII_II_NNN_None": "Q-Learners with Defectors - Loner",
-    "XII_II_NNN_0": "Q-Learners with Defectors - Defect",
-    "XII_II_NNN_1": "Q-Learners with Defectors - Cooperate",
-    "XII_III_NNN_None": "Q-Learners with Loners - Loner",
-    "XII_III_NNN_0": "Q-Learners with Loners - Defect",
-    "XII_III_NNN_1": "Q-Learners with Loners - Cooperate",
-    "I_NNN_1": "Cooperators only - Cooperate",
-    "II_NNN_0": "Defectors only - Defect",
-    "III_NNN_None": "Loners only - Loner",
+    'XII_IV_NNN_1': "Q-Learner with C^(0, D) - Cooperate",
+    'XII_IV_NNN_0': "Q-Learner with C^(0, D) - Defect",
+    'XII_IV_NNN_None': "Q-Learner with C^(0, D) - Loner",
+    'XII_V_NNN_1': "Q-Learner with C^(1, D) - Cooperate",
+    'XII_V_NNN_0': "Q-Learner with C^(1, D) - Defect",
+    'XII_V_NNN_None': "Q-Learner with C^(1, D) - Loner",
+    'XII_VI_NNN_1': "Q-Learner with C^(0, L) - Cooperate",
+    'XII_VI_NNN_0': "Q-Learner with C^(0, L) - Defect",
+    'XII_VI_NNN_None': "Q-Learner with C^(0, L) - Loner",
+    'XII_VII_NNN_1': "Q-Learner with C^(1, L) - Cooperate",
+    'XII_VII_NNN_0': "Q-Learner with C^(1, L) - Defect",
+    'XII_VII_NNN_None': "Q-Learner with C^(1, L) - Loner",
 }
 
 columns_to_plot = [
-    "XII_III_NNN_1",
-    "XII_III_NNN_0",
-    "XII_III_NNN_None"
+    "XII_VII_NNN_1",
+    "XII_VII_NNN_0",
+    "XII_VII_NNN_None"
 ]
 
 csv_files = glob.glob("csv/j*_payoffs_0.csv")
@@ -62,4 +59,4 @@ plt.legend(title="Action")
 plt.grid(True, linestyle="--", alpha=0.6)
 
 plt.tight_layout()
-plt.savefig('average_payoff_by_actionLoners.png', dpi=300)
+plt.savefig('average_payoff_by_actionL(1, D).png', dpi=300)
