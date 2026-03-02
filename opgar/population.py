@@ -603,9 +603,10 @@ class Population:
                     period_result["Transitions"][agent.tracker[-2]][agent.tracker[-1]] += 1
                     
         for strategy in self.strategies:
+            strategy_name = strategy.split("_", 1)[0]
             # Get population composition as a proportion instead of relative size
-            period_result["Composition"][strategy] = (
-                period_result["Composition Count"][strategy] / self.config.N
+            period_result["Composition"][strategy_name] = (
+                period_result["Composition Count"][strategy_name] / self.config.N
             )
         # Average strategy payoffs by number of agents using the strategy and by action
         period_result["Average Payoffs"] = {
@@ -806,7 +807,7 @@ class Population:
         # logging.info("Agents reset")
         for agent in self.agents:
             agent.utility = 1
-            agent.reputation = 1
+            #agent.reputation = 1
 
     def __str__(self):
         s = []
