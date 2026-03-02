@@ -8,6 +8,7 @@ __pycache__/
 *.log
 *.tmp
 *.swp
+*.txt
 
 # File di ambiente virtuale
 .env
