@@ -89,8 +89,6 @@ class Population:
             t_step = self.config.t
         batches = list(range(t_start, t_end, t_step)) + [t_end]
 
-        logging.info(f"{batches}")
-
         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
         if transition_matrix_batch is None:
