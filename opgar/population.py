@@ -108,27 +108,20 @@ class Population:
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
                 logging.info(f"T={t} starting")
 
-                logging.info(f"{(t - batch_start) * self.config.omega}")
+                batch_len = (batch_end - batch_start) * self.config.omega
 
                 if (t - batch_start) * self.config.omega in {
-                    ((batch_end - batch_start) * self.config.omega // 3 // 1000) * 1000,
-                    (2 * (batch_end - batch_start) * self.config.omega // 3 // 1000) * 1000
+                    round(batch_len * 0.3),
+                    round(batch_len * 0.6)
                 }:
+                """
                     # DEBUG
                     with open(f"subgroups_round_{((t - batch_start) * self.config.omega)}.txt", "w") as f:
                         for strat, members in self.subgroups.items():
                             f.write(strat + "\n")
                             for id in members:
-                                f.write(f"{id, self.agents[id].strategy['behavioural']}\n")     
-                    with open(f"q_table_round_{((t - batch_start) * self.config.omega) % (batch_end - batch_start)}.txt", "w") as f:
-                        for strategy, group in self.q_learner_groups.items():
-                            f.write(f"group {strategy} \n")
-                            for id in group:
-                                qtable = self.agents[id].q_table
-                                f.write(f"{id} \n")
-                                for i, row in enumerate(qtable):
-                                    f.write(f'{self.agents[id].idx_to_state[i], row}\n')     
-                    
+                                f.write(f"{id, self.agents[id].strategy['behavioural']}\n")          
+                """
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
                 else:
