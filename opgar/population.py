@@ -59,9 +59,6 @@ class Population:
         self.qtable_changes = defaultdict(int)
         self.subgroups = self._build_subgroups()
 
-        os.makedirs(os.path.dirname("csv/"), exist_ok=True)
-        os.makedirs(os.path.dirname("json/"), exist_ok=True)
-
     def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
         """
         Simulate multiple rounds of public goods games
@@ -118,7 +115,6 @@ class Population:
                     (2 * (batch_end - batch_start) * self.config.omega // 3 // 1000) * 1000
                 }:
                     # DEBUG
-                    """ 
                     with open(f"subgroups_round_{((t - batch_start) * self.config.omega)}.txt", "w") as f:
                         for strat, members in self.subgroups.items():
                             f.write(strat + "\n")
@@ -132,7 +128,7 @@ class Population:
                                 f.write(f"{id} \n")
                                 for i, row in enumerate(qtable):
                                     f.write(f'{self.agents[id].idx_to_state[i], row}\n')     
-                    """
+                    
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
                 else:
@@ -188,6 +184,9 @@ class Population:
             # ----------------------------------------------------------------------
             processing_start = time()
 
+            os.makedirs(os.path.dirname("csv/"), exist_ok=True)
+            os.makedirs(os.path.dirname("json/"), exist_ok=True)
+
             # Average Payoffs & Population State & actions transitions
             avg_payoffs = pd.concat([period_results[n]["Average Payoffs"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
             avg_payoffs.index = np.arange((batch_end - batch_start) * self.config.omega)
@@ -199,10 +198,16 @@ class Population:
             action_transitions.index = np.arange((batch_end - batch_start) * self.config.omega)
 
             all_avg = sorted({avg for n in range((batch_end - batch_start) * self.config.omega) for avg in period_results[n]["Q values"].keys()})
+            
             q_values_ranking = pd.DataFrame([
-                {avg: period_results[n]["Q values"].get(avg, {0: 0, 1: 0, 2: 0}) for avg in all_avg}
-                for n in range((batch_end - batch_start) * self.config.omega)
+                {
+                    avg: {
+                        i: period_results[n]["Q values"].get(avg, {}).get(i, 0)
+                        for i in range(3)
+                    } for avg in all_avg
+                } for n in range((batch_end - batch_start) * self.config.omega)
             ])
+
             q_values_ranking = q_values_ranking.map(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
 
             # Actions
@@ -218,7 +223,6 @@ class Population:
                 transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
              # Reputations
             reputation = pd.DataFrame([reputation_tracker.get(n, (0, 0, 0)) for n in range((batch_end - batch_start) * self.config.omega)], columns=["good", "ok", "bad"])
-            #DataFrame(reputation_tracker, columns=["Good", "Medium", "Bad"], index=range(batch_start, batch_end))
             reputation = reputation.astype("float16")
 
             # Punishments
@@ -586,8 +590,8 @@ class Population:
             period_result["Composition Count"][agent.strategy["behavioural"]] += 1
                 
             if agent.strategy["behavioural"] == "XII":
-                for avg_payoff in agent.q_table.keys():
-                    ranking = np.argmax(agent.q_table[avg_payoff])
+                for avg_payoff, q_values in agent.q_table.items():
+                    ranking = np.argmax(q_values)
                     period_result["Q values"][avg_payoff][ranking] += 1
                 period_result["Payoffs"][agent.strategy["behavioural"] + "_" + next(k for k, v in self.q_learner_groups.items() 
                                                         if agent.ID in v) + "_" + str(agent.tracker[-1])] += (agent.utility - 1)
