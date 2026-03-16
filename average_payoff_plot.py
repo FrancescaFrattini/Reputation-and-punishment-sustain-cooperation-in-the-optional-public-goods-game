@@ -16,12 +16,24 @@ rename_map = {
     'XII_VII_NNN_1': "Q-Learner with C^(1, L) - Cooperate",
     'XII_VII_NNN_0': "Q-Learner with C^(1, L) - Defect",
     'XII_VII_NNN_None': "Q-Learner with C^(1, L) - Loner",
+    'XII_VIII_NNN_1': "Q-Learner with D^(0, L) - Cooperate",
+    'XII_VIII_NNN_0': "Q-Learner with D^(0, L) - Defect",
+    'XII_VIII_NNN_None': "Q-Learner with D^(0, L) - Loner",
+    'XII_IX_NNN_1': "Q-Learner with D^(1, L) - Cooperate",
+    'XII_IX_NNN_0': "Q-Learner with D^(1, L) - Defect",
+    'XII_IX_NNN_None': "Q-Learner with D^(1, L) - Loner",
+    'XII_X_NNN_1': "Q-Learner with L^(0, D) - Cooperate",
+    'XII_X_NNN_0': "Q-Learner with L^(0, D) - Defect",
+    'XII_X_NNN_None': "Q-Learner with L^(0, D) - Loner",
+    'XII_XI_NNN_1': "Q-Learner with L^(1, D) - Cooperate",
+    'XII_XI_NNN_0': "Q-Learner with L^(1, D) - Defect",
+    'XII_XI_NNN_None': "Q-Learner with L^(1, D) - Loner",
 }
 
 columns_to_plot = [
-    "XII_VII_NNN_1",
-    "XII_VII_NNN_0",
-    "XII_VII_NNN_None"
+    "XII_VIII_NNN_1",
+    "XII_VIII_NNN_0",
+    "XII_VIII_NNN_None"
 ]
 
 csv_files = glob.glob("csv/j*_payoffs_0.csv")
@@ -59,4 +71,4 @@ plt.legend(title="Action")
 plt.grid(True, linestyle="--", alpha=0.6)
 
 plt.tight_layout()
-plt.savefig('average_payoff_by_actionL(1, D).png', dpi=300)
+plt.savefig('average_payoff_by_actionD(0, L).png', dpi=300)
