@@ -22,12 +22,24 @@ rename_map = {
     'XII_VII_NNN_1': "Q-Learner with C^(1, L) - Cooperate",
     'XII_VII_NNN_0': "Q-Learner with C^(1, L) - Defect",
     'XII_VII_NNN_None': "Q-Learner with C^(1, L) - Loner",
+    'XII_VIII_NNN_1': "Q-Learner with D^(0, L) - Cooperate",
+    'XII_VIII_NNN_0': "Q-Learner with D^(0, L) - Defect",
+    'XII_VIII_NNN_None': "Q-Learner with D^(0, L) - Loner",
+    'XII_IX_NNN_1': "Q-Learner with D^(1, L) - Cooperate",
+    'XII_IX_NNN_0': "Q-Learner with D^(1, L) - Defect",
+    'XII_IX_NNN_None': "Q-Learner with D^(1, L) - Loner",
+    'XII_X_NNN_1': "Q-Learner with L^(0, D) - Cooperate",
+    'XII_X_NNN_0': "Q-Learner with L^(0, D) - Defect",
+    'XII_X_NNN_None': "Q-Learner with L^(0, D) - Loner",
+    'XII_XI_NNN_1': "Q-Learner with L^(1, D) - Cooperate",
+    'XII_XI_NNN_0': "Q-Learner with L^(1, D) - Defect",
+    'XII_XI_NNN_None': "Q-Learner with L^(1, D) - Loner",
 }
 
 columns_to_plot = [
-    "XII_VI_NNN_1",
-    "XII_VI_NNN_0",
-    "XII_VI_NNN_None"
+    "XII_XI_NNN_1",
+    "XII_XI_NNN_0",
+    "XII_XI_NNN_None"
 ]
 
 dfs = []
@@ -64,4 +76,4 @@ plt.autoscale(enable=True, axis='x', tight=True)
 plt.legend(title="Action per Strategy")
 plt.grid(True)
 plt.tight_layout(rect=[0.01, 0, 1, 1])
-plt.savefig('granular_actions_plotC(0, L).png', dpi=300)
+plt.savefig('granular_actions_plotL(1, D).png', dpi=300)
