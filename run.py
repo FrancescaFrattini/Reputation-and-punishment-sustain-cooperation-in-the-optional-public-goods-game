@@ -21,8 +21,8 @@ only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-L
 only_loner_and_learner = _Strategy.strategy_groups["UnconditionalLoner + Q-Learning"]
 only_qlearner = _Strategy.strategy_groups["Q-Learning"]
 defined_strategies_and_learner = _Strategy.strategy_groups["purenopunish + Q-Learning"]
-reputation_and_learner = _Strategy.strategy_groups["cooperatorsnopunish + Q-Learning"]
-conditionalcooperator_and_learner = _Strategy.strategy_groups["cooperatorsabstain + Q-Learning"]
+conditionalcooperator_and_learner = _Strategy.strategy_groups["cooperatorsdefect + Q-Learning"]
+conditionalcooperator1_and_learner = _Strategy.strategy_groups["cooperatorsabstain + Q-Learning"]
 conditionaldefector_and_learner = _Strategy.strategy_groups["conditionaldefectors + Q-Learning"]
 conditionalloner_and_learner = _Strategy.strategy_groups["conditionalloners + Q-Learning"]
 
