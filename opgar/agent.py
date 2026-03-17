@@ -102,10 +102,11 @@ class QLearningAgent(_Agent):
         At each time step, the agent observes the average payoff of the group for each possible action (1, 0, None).
         After each round, the agent updates its Q-values based on the observed value.
         Args:
-            avg (float): The average payoff of the group for the current round.
+            avg (float): The average reputation of the group regarding the previous round.
             reward (float): The reward received after taking the last action.    
     """
         action_idx = self._action_to_index(self.tracker[-1])
+
         if avg not in self.q_table:
             self.q_table[avg] = [0, 0, 0]
     

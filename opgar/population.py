@@ -112,14 +112,14 @@ class Population:
                     round(batch_len * 0.3),
                     round(batch_len * 0.6)
                 }:
-                """
+                    """
                     # DEBUG
                     with open(f"subgroups_round_{((t - batch_start) * self.config.omega)}.txt", "w") as f:
                         for strat, members in self.subgroups.items():
                             f.write(strat + "\n")
                             for id in members:
                                 f.write(f"{id, self.agents[id].strategy['behavioural']}\n")          
-                """
+                    """
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
                 else:
@@ -133,7 +133,6 @@ class Population:
                     all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_IV_NNN", "XII_V_NNN", "XII_VI_NNN", 
                                                     "XII_VII_NNN", "IV_NNN", "V_NNN", "VI_NNN","VII_NNN"], ["1", "0", "None"])], 0)
 
-                    # First game
                     self._play_public_good_game(all_action_tracker)
                     if self.social_norm_type:
                         self._update_reputations()
@@ -477,13 +476,14 @@ class Population:
         # Play PGG in groups of n
         for group in self.groups_of_players_IDs:
             # Each player calculates the average reputation of the group based on the *rest* of the group
-            avg_reps = {}
+            reputations = {}
             for playerID in group:
-                avg_reps[playerID] = sum([self.agents[ID].reputation for ID in group if ID != playerID]) / (n - 1)
+                reputations[playerID] = sum([self.agents[ID].reputation for ID in group if ID != playerID]) / (n - 1)
 
+            avg_reps = sum(reputations.values()) / len(reputations)
             # Players decide to contribute 1, contribute 0, or not participate (None)
             group_contribution = [
-                self.agents[ID]._choose_action(average_reputation=avg_reps[ID], epsilon=self.exploration_rate)
+                self.agents[ID]._choose_action(average_reputation=reputations[ID], epsilon=self.exploration_rate)
                 for ID in group
             ]
             # Possible cases
@@ -499,10 +499,8 @@ class Population:
                     #self.agents[playerID].tracker.append(contribution)
                     self.agents[playerID].utility += self.config.sigma
                     if self.agents[playerID].strategy["behavioural"] == "XII":
-                        counts = group_actions.copy()
-                        counts[contribution] -= 1
-                        self.agents[playerID].learn(reward=self.config.sigma, avg = self.config.sigma)
-                        self.qtable_changes[self.config.sigma] += 1
+                        self.agents[playerID].learn(reward=self.config.sigma, avg = avg_reps)
+                        self.qtable_changes[avg_reps] += 1
                         strategy_action_tracker[self.agents[playerID].strategy["behavioural"] + "_" + next
                             (k for k, v in self.q_learner_groups.items() if self.agents[playerID].ID in v) + "_" + 
                             str(contribution)] += 1
@@ -542,11 +540,9 @@ class Population:
                         self.agents[playerID].utility += self.config.sigma
                     # Q-Learning agent learns
                     if self.agents[playerID].strategy["behavioural"] == "XII":
-                        counts = group_actions.copy()
-                        counts[contribution] -= 1
                         reward = self.agents[playerID].utility - old_utility
-                        self.agents[playerID].learn(reward=reward, avg=avg_payoff)
-                        self.qtable_changes[avg_payoff] += 1
+                        self.agents[playerID].learn(reward = reward, avg = avg_reps)
+                        self.qtable_changes[avg_reps] += 1
                         strategy_action_tracker[self.agents[playerID].strategy["behavioural"] + "_" + next
                             (k for k, v in self.q_learner_groups.items() if self.agents[playerID].ID in v) + "_" + 
                             str(contribution)] += 1
