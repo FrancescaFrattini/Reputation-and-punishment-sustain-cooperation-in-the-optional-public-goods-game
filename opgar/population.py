@@ -175,8 +175,8 @@ class Population:
                         self.exploration_rate = self.config.exploration_rate
                         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
-                #population reset at the end of each timestep
-                self._reset_population()
+                    #population reset at the end of each timestep
+                    self._reset_population()
 
             # ----------------------------------------------------------------------
             # POST-PROCESSING OF EACH BATCH
