@@ -136,7 +136,10 @@ class _Strategy:
         "UnconditionalLoner + Q-Learning": ["III_NNN", "XII_NNN"],
         "Q-Learning": ["XII_NNN"],
         "purenopunish + Q-Learning": all_strategies[:24:8] + ["XII_NNN"],
-        "cooperatorsnopunish + Q-Learning": all_strategies[24:49:8] + ["XII_NNN"],
+        "cooperatorsdefect + Q-Learning": ["IV_NNN", "V_NNN"] + ["XII_NNN"],
+        "cooperatorsabstain + Q-Learning": ["VI_NNN", "VII_NNN", "XII_NNN"],
+        "conditionaldefectors + Q-Learning": ["VIII_NNN", "IX_NNN", "XII_NNN"],
+        "conditionalloners + Q-Learning": ["X_NNN", "XI_NNN", "XII_NNN"],
     }
 
     strategy_name_mapping = {
