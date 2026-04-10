@@ -89,6 +89,7 @@ class Population:
             t_step = self.config.t
         batches = list(range(t_start, t_end, t_step)) + [t_end]
 
+        #self.groups_of_players_IDs = self._get_groups()
         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
 
         if transition_matrix_batch is None:
@@ -107,19 +108,17 @@ class Population:
                 logging.info(f"T={t} starting")
 
                 batch_len = (batch_end - batch_start) * self.config.omega
-
                 if (t - batch_start) * self.config.omega in {
-                    round(batch_len * 0.3),
-                    round(batch_len * 0.6)
+                    round(batch_len * 0.5)
                 }:
-                """
+                    """        
                     # DEBUG
                     with open(f"subgroups_round_{((t - batch_start) * self.config.omega)}.txt", "w") as f:
                         for strat, members in self.subgroups.items():
                             f.write(strat + "\n")
                             for id in members:
                                 f.write(f"{id, self.agents[id].strategy['behavioural']}\n")          
-                """
+                    """      
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
                 else:
@@ -127,11 +126,12 @@ class Population:
                     if self.config.reset_exploration_rate is None:
                         if np.random.random() < self.config.delta:
                             self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                
 
                 for n in range(self.config.omega):
                     #all_action_tracker = {}.fromkeys(["_" .join(s) for s in product(self.strategies, ["1", "0", "None"])], 0)
-                    all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_IV_NNN", "XII_V_NNN", "XII_VI_NNN", 
-                                                    "XII_VII_NNN", "IV_NNN", "V_NNN", "VI_NNN","VII_NNN"], ["1", "0", "None"])], 0)
+                    all_action_tracker = {}.fromkeys(["_".join(s) for s in product(["XII_VI_NNN", "XII_VII_NNN", 
+                                                   "VI_NNN", "VII_NNN"], ["1", "0", "None"])], 0)
 
                     # First game
                     self._play_public_good_game(all_action_tracker)
@@ -166,6 +166,7 @@ class Population:
                             ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
                         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                        #self.groups_of_players_IDs = self._get_groups()
 
                     #population reset at the end of each timestep
                     self._reset_population()
@@ -303,20 +304,20 @@ class Population:
         Q-Learner agents rotate this way:
         IV_NNN -> V_NNN -> VI_NNN -> VII_NNN
         """
-        strat_defectnotbad = [agent.ID for agent in self.agents_by_strategy.get("IV_NNN", [])]
-        strat_defectgood = [agent.ID for agent in self.agents_by_strategy.get("V_NNN", [])]
+        #strat_defectnotbad = [agent.ID for agent in self.agents_by_strategy.get("IV_NNN", [])]
+        #strat_defectgood = [agent.ID for agent in self.agents_by_strategy.get("V_NNN", [])]
         strat_lonernotbad = [agent.ID for agent in self.agents_by_strategy.get("VI_NNN", [])]
         strat_lonergood = [agent.ID for agent in self.agents_by_strategy.get("VII_NNN", [])]
         old_groups = self.q_learner_groups.copy() 
         self.q_learner_groups.clear()
-        self.q_learner_groups["IV_NNN"] = old_groups["VII_NNN"]
-        self.q_learner_groups["V_NNN"] = old_groups["IV_NNN"]  
-        self.q_learner_groups["VI_NNN"] = old_groups["V_NNN"]   
+        #self.q_learner_groups["IV_NNN"] = old_groups["V_NNN"]
+        #self.q_learner_groups["V_NNN"] = old_groups["IV_NNN"]  
+        self.q_learner_groups["VI_NNN"] = old_groups["VII_NNN"]   
         self.q_learner_groups["VII_NNN"] = old_groups["VI_NNN"]
 
         subgroups = {
-            "defectnotbad": strat_defectnotbad + self.q_learner_groups["IV_NNN"],
-            "defectgood": strat_defectgood + self.q_learner_groups["V_NNN"],
+            #"defectnotbad": strat_defectnotbad + self.q_learner_groups["IV_NNN"],
+            #"defectgood": strat_defectgood + self.q_learner_groups["V_NNN"],
             "lonernotbad": strat_lonernotbad + self.q_learner_groups["VI_NNN"],
             "lonergood": strat_lonergood + self.q_learner_groups["VII_NNN"]
         }
@@ -582,15 +583,15 @@ class Population:
                 
             if agent.strategy["behavioural"] == "XII":
                 for avg_payoff, q_values in agent.q_table.items():
-                    ranking = np.argmax(q_values)
+                    ranking = np.argmax([deq[-1] for deq in q_values])
                     period_result["Q values"][avg_payoff][ranking] += 1
                 period_result["Payoffs"][agent.strategy["behavioural"] + "_" + next(k for k, v in self.q_learner_groups.items() 
                                                         if agent.ID in v) + "_" + str(agent.tracker[-1])] += (agent.utility - 1)
                 period_result["Actions per strategy"][agent.strategy["behavioural"] + "_" + next
                             (k for k, v in self.q_learner_groups.items() if agent.ID in v) + "_" + str(agent.tracker[-1])] += 1
-            else:
-                period_result["Payoffs"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
-                period_result["Actions per strategy"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += 1
+            #else:
+            period_result["Payoffs"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
+            period_result["Actions per strategy"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += 1
 
 
             # actions transition tracker
@@ -744,7 +745,7 @@ class Population:
                     # If the strategy is QLearning, create a QLearningAgent
                     agents.append(QLearningAgent(ID=id_counter, strategy=strategy,  
                                                 alpha=self.config.alpha, discount_factor=self.config.discount_factor, 
-                                                group_size=self.config.n))
+                                                group_size=self.config.n, n = self.config.observation_space))
                 else:
                     agents.append(_Agent(ID=id_counter, strategy=strategy))
                 id_counter += 1
@@ -759,22 +760,22 @@ class Population:
             subgroups (dict): A dictionary of strategy: list of agent IDs pairs, where each strategy is a key and the value is a list of agent IDs that have that strategy. 
         """
 
-        strat_defectnotbad = [agent.ID for agent in self.agents_by_strategy.get("IV_NNN", [])]
-        strat_defectgood = [agent.ID for agent in self.agents_by_strategy.get("V_NNN", [])]
+        #strat_defectnotbad = [agent.ID for agent in self.agents_by_strategy.get("IV_NNN", [])]
+        #strat_defectgood = [agent.ID for agent in self.agents_by_strategy.get("V_NNN", [])]
         strat_lonernotbad = [agent.ID for agent in self.agents_by_strategy.get("VI_NNN", [])]
         strat_lonergood = [agent.ID for agent in self.agents_by_strategy.get("VII_NNN", [])]
         q_learner = [agent.ID for agent in self.agents_by_strategy.get("XII_NNN", [])]
         np.random.shuffle(q_learner)
 
         total_q_learner = len(q_learner)
-        q_learner_per_group = total_q_learner // 4
-        leftovers = total_q_learner % 4
+        q_learner_per_group = total_q_learner // 2
+        leftovers = total_q_learner % 2
 
-        sizes = [q_learner_per_group] * 4
+        sizes = [q_learner_per_group] * 2
         for i in range(leftovers):
             sizes[i] += 1
 
-        self.q_learner_groups = {"IV_NNN": [], "V_NNN": [], "VI_NNN": [], "VII_NNN": [] }
+        self.q_learner_groups = {"VI_NNN": [], "VII_NNN": []}#, "VI_NNN": [], "VII_NNN": [] }
 
         index = 0
         for strategy, size in zip(self.q_learner_groups.keys(), sizes):
@@ -782,8 +783,8 @@ class Population:
             index += size
 
         subgroups = {
-            "defectnotbad": strat_defectnotbad + self.q_learner_groups["IV_NNN"],
-            "defectgood": strat_defectgood + self.q_learner_groups["V_NNN"],
+            #"defectnotbad": strat_defectnotbad + self.q_learner_groups["IV_NNN"],
+            #"defectgood": strat_defectgood + self.q_learner_groups["V_NNN"],
             "lonernotbad": strat_lonernotbad + self.q_learner_groups["VI_NNN"],
             "lonergood": strat_lonergood + self.q_learner_groups["VII_NNN"]
         }
