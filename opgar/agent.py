@@ -7,9 +7,9 @@ from .strategy import _Strategy
 from collections import deque, Counter
 
 class _Agent:
-    __slots__ = ["ID", "strategy", "utility", "reputation", "tracker", "n"]
+    __slots__ = ["ID", "strategy", "utility", "reputation", "tracker"]
 
-    def __init__(self, ID, strategy, n=10):
+    def __init__(self, ID, strategy):
         self.ID = ID
         self.strategy = {
             key: val
@@ -18,8 +18,8 @@ class _Agent:
         self.strategy["ID"] = strategy
         self.utility = 1
         self.reputation = 1
-        self.tracker = deque(maxlen=n)
-        self.n = n
+        self.tracker = deque(maxlen=10)
+        
         """
         logging.info(
             f"Agent {self.ID} created with r={self.reputation} & s={self.strategy}"
@@ -64,17 +64,18 @@ class _Agent:
 class QLearningAgent(_Agent):
 
     __slots__ = _Agent.__slots__ + [
-    "alpha", "discount_factor", "q_table", "current_state","n", 
+    "alpha", "discount_factor", "q_table", "current_state", "n", 
     ]
 
     ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
 
-    def __init__(self, ID, strategy,  group_size, alpha=0.1, discount_factor=0.1, n=10):
-        super().__init__(ID, strategy=strategy, n=n)
+    def __init__(self, ID, strategy, group_size, alpha=0.1, discount_factor=0.1, n=1):
+        super().__init__(ID, strategy=strategy)
         self.alpha, self.discount_factor = alpha, discount_factor
 
         self.q_table = {}
         self.current_state = None
+        self.n = n
 
     def _choose_action(self, epsilon, average_reputation=None):
         """
@@ -89,10 +90,10 @@ class QLearningAgent(_Agent):
         Returns:
             Action (str): Contributes 1 or 0 if playing, if not participating, then return None
     """
-        if random.random() < epsilon or not np.any(self.q_table[self.current_state]):
+        if random.random() < epsilon or self._is_uninitialized():
             self.tracker.append(random.choice(self.ACTIONS))
         else:
-            best_action_index = np.argmax(self.q_table[self.current_state])
+            best_action_index = np.argmax(self._get_row_sum())
             self.tracker.append(self.ACTIONS[best_action_index])
         return self.tracker[-1]
     
@@ -108,11 +109,16 @@ class QLearningAgent(_Agent):
         action_idx = self._action_to_index(self.tracker[-1])
 
         if avg not in self.q_table:
-            self.q_table[avg] = [0, 0, 0]
+            #self.q_table[avg] = [0, 0, 0]
+            self.q_table[avg] = self._init_state()
     
         if self.current_state is not None:
-            td_error = reward  + (self.discount_factor*np.max(self.q_table[avg])) - self.q_table[self.current_state][action_idx]
-            self.q_table[self.current_state][action_idx] += self.alpha * td_error
+            td_error = reward  + (self.discount_factor*self._get_max_q_value(avg)) \
+                             -  self.q_table[self.current_state][action_idx][-1]
+            if self.n == 1:
+                self.q_table[self.current_state][action_idx][-1] += self.alpha * td_error
+            else:   
+                self.q_table[self.current_state][action_idx].append(self.alpha * td_error)
         self.current_state = avg
     
     def _action_to_index(self, action):
@@ -127,3 +133,23 @@ class QLearningAgent(_Agent):
                 return 2
             else:
                 return action
+
+    def _get_row_sum(self): return [sum(a) for a in self.q_table[self.current_state]]
+
+    def _init_state(self):
+        return [
+            deque([0], maxlen=self.n),
+            deque([0], maxlen=self.n),
+            deque([0], maxlen=self.n)
+        ]
+
+    def _get_max_q_value(self, state):
+        return np.max([
+                value
+                for action_deque in self.q_table[state]
+                for value in action_deque
+            ])
+
+    def _is_uninitialized(self):
+        return all(len(deq) == 1 and deq[0] == 0 for deq in self.q_table[self.current_state])
+
