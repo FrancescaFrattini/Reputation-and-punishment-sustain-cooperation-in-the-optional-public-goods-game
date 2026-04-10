@@ -22,6 +22,7 @@ class Configuration:
             minimum_exploration_rate (float): Minimum exploration rate for Q-Learning agents.
             reset_exploration_rate (int): Number of rounds after which the exploration rate is reset to its initial value.
             epsilon_decay(float): Decay rate for exploration rate in Q-Learning agents.
+            observation_size(int): The number of previous rounds that Q-Learning agents can observe, used to determine the state space of the Q-table.
 
         Returns:
             opgar.Configuration object which is input to opgar.Population object.
@@ -59,6 +60,7 @@ class Configuration:
         "minimum_exploration_rate",
         "reset_exploration_rate",
         "epsilon_decay",
+        "observation_space"
     ]
 
     def __init__(
@@ -79,6 +81,7 @@ class Configuration:
         minimum_exploration_rate: float,
         reset_exploration_rate: int,
         epsilon_decay: float,
+        observation_space: int,
     ):
         self._meta_data = {}
 
@@ -199,6 +202,10 @@ class Configuration:
         if epsilon_decay < 0 or epsilon_decay > 1: 
             raise ValueError("Epsilon decay ('{epsilon_decay}') must be in [0,1].")
         self.epsilon_decay = epsilon_decay
+
+        if observation_space < 1 or observation_space > 10:
+            raise ValueError("Observation space ('{observation_space}') must be in [1,10].")
+        self.observation_space = observation_space
 
         # ------------------------------------------------------------------------
         # PROBABILITY OF AN AGENT TO CHANGE ITS BELONGING GROUP
