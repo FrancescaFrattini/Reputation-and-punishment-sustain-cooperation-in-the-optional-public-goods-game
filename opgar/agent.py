@@ -93,7 +93,7 @@ class QLearningAgent(_Agent):
         if random.random() < epsilon or self._is_uninitialized():
             self.tracker.append(random.choice(self.ACTIONS))
         else:
-            best_action_index = np.argmax(self._get_row_sum())
+            best_action_index = np.argmax(self._get_row_values())
             self.tracker.append(self.ACTIONS[best_action_index])
         return self.tracker[-1]
     
@@ -133,7 +133,7 @@ class QLearningAgent(_Agent):
             else:
                 return action
 
-    def _get_row_sum(self): return [sum(a) for a in self.q_table[self.current_state]]
+    def _get_row_values(self): return [max(deq) for deq in self.q_table[self.current_state]]
 
     def _init_state(self):
         return [

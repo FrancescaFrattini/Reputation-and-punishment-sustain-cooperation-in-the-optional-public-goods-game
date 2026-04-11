@@ -21,20 +21,20 @@ only_defect_and_learner = _Strategy.strategy_groups["UnconditionalDefector + Q-L
 only_loner_and_learner = _Strategy.strategy_groups["UnconditionalLoner + Q-Learning"]
 only_qlearner = _Strategy.strategy_groups["Q-Learning"]
 defined_strategies_and_learner = _Strategy.strategy_groups["purenopunish + Q-Learning"]
-reputation_and_learner = _Strategy.strategy_groups["cooperatorsnopunish + Q-Learning"]
-conditionalcooperator_and_learner = _Strategy.strategy_groups["cooperatorsabstain + Q-Learning"]
+conditionalcooperator_and_learner = _Strategy.strategy_groups["cooperatorsdefect + Q-Learning"]
+conditionalcooperator1_and_learner = _Strategy.strategy_groups["cooperatorsabstain + Q-Learning"]
 conditionaldefector_and_learner = _Strategy.strategy_groups["conditionaldefectors + Q-Learning"]
 conditionalloner_and_learner = _Strategy.strategy_groups["conditionalloners + Q-Learning"]
 
 config = Configuration(
     N = 600,
     n = 5, 
-    t = 100, 
+    t = 10, 
     r = 3, 
     sigma = 1,
     composition = dict(zip(conditionalcooperator1_and_learner , [0.375, 0.375, 0.25])),
     norm = "Both",
-    omega = 100, 
+    omega = 10, 
     strategy_group = "cooperatorsabstain + Q-Learning",
     alpha = 0.1,
     exploration_rate = 1.0,
@@ -43,7 +43,7 @@ config = Configuration(
     minimum_exploration_rate = 0.05,
     reset_exploration_rate = None,
     epsilon_decay = 0.9995,
-    observation_space = 1,
+    observation_space = 10
     )
 
 for id in range(0, 1):
