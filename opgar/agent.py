@@ -132,7 +132,7 @@ class QLearningAgent(_Agent):
             if self.n == 1:
                 self.q_table[self.current_state, action_idx] += self.alpha * td_error
             else:   
-                self.q_table[self.current_state, action_idx][-1].append(self.alpha * td_error)
+                self.q_table[self.current_state, action_idx].append(self.alpha * td_error)
 
         self.current_state = idx
     
