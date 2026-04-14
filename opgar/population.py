@@ -122,11 +122,21 @@ class Population:
                     """      
                     self.subgroups = self._rotate_subgroups()
                     self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                    self.agent_to_group = {
+                        agent_id: group
+                        for group, ids in self.q_learner_groups.items()
+                        for agent_id in ids
+                    }
                 else:
                     # group mixing at each timestep
                     if self.config.reset_exploration_rate is None:
                         if np.random.random() < self.config.delta:
                             self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                            self.agent_to_group = {
+                                agent_id: group
+                                for group, ids in self.q_learner_groups.items()
+                                for agent_id in ids
+                            }
                 
 
                 for n in range(self.config.omega):
@@ -167,6 +177,11 @@ class Population:
                             ((t - batch_start) * self.config.omega + n) % self.config.reset_exploration_rate == 0:
                         self.exploration_rate = self.config.exploration_rate
                         self.groups_of_players_IDs = self._get_groups_inside_subgroups()
+                        self.agent_to_group = {
+                            agent_id: group
+                            for group, ids in self.q_learner_groups.items()
+                            for agent_id in ids
+                        }
                         #self.groups_of_players_IDs = self._get_groups()
 
                     #population reset at the end of each timestep
@@ -209,7 +224,8 @@ class Population:
                               for innerKey, innerVal in outerVal.items() if innerVal != 0]
                 transitions.append(pd.DataFrame(transition, columns=["Source", "Destination", "#"]))
              # Reputations
-            reputation = pd.DataFrame([reputation_tracker.get(n, (0, 0, 0)) for n in range((batch_end - batch_start) * self.config.omega)], columns=["good", "ok", "bad"])
+            #reputation = pd.DataFrame([reputation_tracker.get(n, (0, 0, 0)) for n in range((batch_end - batch_start) * self.config.omega)], columns=["good", "ok", "bad"])
+            reputation = pd.DataFrame([reputation_tracker[n] for n in range((batch_end - batch_start) * self.config.omega)])
             reputation = reputation.astype("float16")
 
             # Punishments
@@ -323,8 +339,17 @@ class Population:
         """
         Return a tuple of the proportion of good, OK, bad people. 
         """
-        reps = Counter([agent.reputation for agent in self.agents])
-        return (reps[rep]/self.config.N for rep in [1, 0, -1])
+        return Counter([
+        (
+            agent.strategy["behavioural"] + "_" +
+            self.agent_to_group.get(agent.ID, "UNKNOWN") + "_" + str(agent.reputation)
+        )
+            if agent.strategy["behavioural"] == "XII"
+            else agent.strategy["ID"] + "_" + str(agent.reputation)
+            for agent in self.agents
+        ])
+        # reps = Counter([agent.reputation for agent in self.agents])
+        #return (reps[rep]/self.config.N for rep in [1, 0, -1])
 
     def _record_cooperative_actions(self):
         """
@@ -574,10 +599,10 @@ class Population:
                 for state_idx, row in enumerate(agent.q_table):
                     ranking = np.argmax([deq[-1] for deq in row])
                     period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
-                period_result["Payoffs"][agent.strategy["behavioural"] + "_" + next(k for k, v in self.q_learner_groups.items() 
-                                                        if agent.ID in v) + "_" + str(agent.tracker[-1])] += (agent.utility - 1)
-                period_result["Actions per strategy"][agent.strategy["behavioural"] + "_" + next
-                            (k for k, v in self.q_learner_groups.items() if agent.ID in v) + "_" + str(agent.tracker[-1])] += 1
+                period_result["Payoffs"][agent.strategy["behavioural"] + "_" + self.agent_to_group.get(agent.ID, "UNKNOWN") + "_" + 
+                                    str(agent.tracker[-1])] += (agent.utility - 1)
+                period_result["Actions per strategy"][agent.strategy["behavioural"] + "_" + self.agent_to_group.get(agent.ID, "UNKNOWN") + 
+                                "_" + str(agent.tracker[-1])] += 1
             #else:
             period_result["Payoffs"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += (agent.utility - 1)
             period_result["Actions per strategy"][agent.strategy["behavioural"]+"_"+str(agent.tracker[-1])] += 1
