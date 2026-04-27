@@ -124,16 +124,18 @@ class QLearningAgent(_Agent):
     """
         
         triple = Utils.from_counter_to_tuple(counter = contributions)
+        #next state index
         idx = self.state_to_idx[triple]
+        #action index of current state
         action_idx = self._action_to_index(self.tracker[-1])
-
+        
         if self.current_state is not None:
-            td_error = reward  + (self.discount_factor*self._get_max_q_value(idx)) - self.q_table[self.current_state, action_idx][-1]
-            if self.n == 1:
-                self.q_table[self.current_state, action_idx] += self.alpha * td_error
-            else:   
-                self.q_table[self.current_state, action_idx].append(self.alpha * td_error)
-
+            current_qvalue = self.q_table[self.current_state, action_idx][-1]
+            next_qvalue = self._get_max_q_value(idx)
+            td_error = reward  + (self.discount_factor * next_qvalue) - current_qvalue
+            new_qvalue = current_qvalue + (self.alpha * td_error)
+            self.q_table[self.current_state, action_idx].append(new_qvalue)
+        #updates current state
         self.current_state = idx
     
 
@@ -153,11 +155,7 @@ class QLearningAgent(_Agent):
     def _get_row_values(self, state_idx): return [max(deq) for deq in self.q_table[state_idx]]
 
     def _get_max_q_value(self, state_idx):
-        return max(
-            value
-            for action_deque in self.q_table[state_idx]
-            for value in action_deque
-        )
+        return max(deq[-1] for deq in self.q_table[state_idx])
 
     def _is_uninitialized(self):
         return all (
