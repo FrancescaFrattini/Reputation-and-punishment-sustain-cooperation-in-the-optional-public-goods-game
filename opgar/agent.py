@@ -112,12 +112,12 @@ class QLearningAgent(_Agent):
             self.q_table[avg] = self._init_state()
     
         if self.current_state is not None:
-            td_error = reward  + (self.discount_factor*self._get_max_q_value(avg)) \
-                             -  self.q_table[self.current_state][action_idx][-1]
-            if self.n == 1:
-                self.q_table[self.current_state][action_idx][-1] += self.alpha * td_error
-            else:   
-                self.q_table[self.current_state][action_idx].append(self.alpha * td_error)
+            current_q_value = self.q_table[self.current_state][action_idx][-1]
+            next_q_value = self._get_max_q_value(avg)
+            td_error = reward  + (self.discount_factor * next_q_value) - current_q_value
+            new_q_value = current_q_value + (self.alpha * td_error)
+            self.q_table[self.current_state][action_idx].append(self.alpha * td_error)
+        
         self.current_state = avg
     
     def _action_to_index(self, action):
@@ -143,11 +143,7 @@ class QLearningAgent(_Agent):
         ]
 
     def _get_max_q_value(self, state):
-        return np.max([
-                value
-                for action_deque in self.q_table[state]
-                for value in action_deque
-            ])
+        return max(deq[-1] for deq in self.q_table[state])
 
     def _is_uninitialized(self):
         return all(len(deq) == 1 and deq[0] == 0 for deq in self.q_table[self.current_state])
