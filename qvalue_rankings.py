@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 files = sorted(glob.glob("csv/j*_q_values_rankings_0.csv"))
 
-window = 1  
+window = 50
 
 action_labels = {0: "Defect", 1: "Cooperate", 2: "Loner"}
 action_colors = {0: "tab:blue", 1: "tab:green", 2: "tab:orange"}
@@ -19,7 +19,7 @@ def parse_cell_to_dict(x):
 
 def load_and_parse_csv(path):
     df = pd.read_csv(path, index_col=0, keep_default_na=False)
-    return df.applymap(parse_cell_to_dict)
+    return df.map(parse_cell_to_dict)
 
 def parse_triple(colname):
     try:
@@ -116,4 +116,4 @@ for ax, (title, _) in zip(axes, groups):
 
 axes[-1].set_xlabel("# Round", fontsize=10)
 plt.tight_layout(rect=[0, 0, 1, 0.96])
-plt.savefig("q_values_subplot0.png", dpi=300)
+plt.savefig("q_values_subplot.png", dpi=300)
