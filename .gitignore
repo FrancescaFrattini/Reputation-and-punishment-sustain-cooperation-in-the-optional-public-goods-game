@@ -61,6 +61,6 @@ coverage.xml
 Thumbs.db
 ehthumbs.db
 
-csv/*
-json/*
-opgg/*
+csv*/
+json*/
+opgg/
