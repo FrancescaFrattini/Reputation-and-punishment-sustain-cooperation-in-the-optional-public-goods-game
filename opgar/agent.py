@@ -116,7 +116,7 @@ class QLearningAgent(_Agent):
             next_q_value = self._get_max_q_value(avg)
             td_error = reward  + (self.discount_factor * next_q_value) - current_q_value
             new_q_value = current_q_value + (self.alpha * td_error)
-            self.q_table[self.current_state][action_idx].append(self.alpha * td_error)
+            self.q_table[self.current_state][action_idx].append(new_q_value)
         
         self.current_state = avg
     
