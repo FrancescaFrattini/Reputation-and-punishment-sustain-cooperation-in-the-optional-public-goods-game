@@ -14,7 +14,7 @@ from .norm import _Norm
 from .strategy import _Strategy
 from .agent import _Agent, QLearningAgent
 from .utils import deprecated, Utils
-from .generator import Generator
+from .generator import _Generator
 
 class Population:
     """Simulate a population of agents playing public goods games.
@@ -46,7 +46,7 @@ class Population:
 
         # Generate agents with strategy distribution
         self.agents = self._generate_population(config.N, config.composition)
-        self.agents_by_strategy = Generator._generate_population_by_strategy(
+        self.agents_by_strategy = _Generator._generate_population_by_strategy(
             self.agents, self.strategies
         )
         self.social_norm_type = config.social_norm
@@ -101,7 +101,7 @@ class Population:
             cooperative_action_tracker = [None] * (batch_end - batch_start)
             reputation_tracker = {}.fromkeys(range((batch_end - batch_start) * self.config.omega))
             strategy_actions_tracker = {}.fromkeys(range((batch_end - batch_start) * self.config.omega))
-            transition_matrix = Generator._generate_transition_matrix(self.actions, 
+            transition_matrix = _Generator._generate_transition_matrix(self.actions, 
                                                                  int((batch_end - batch_start + 1) / transition_matrix_batch))
 
             for t in trange(batch_start, batch_end, desc=f"T=[{batch_start:,}-{batch_end:,}]", disable=disable_bar):
@@ -749,7 +749,7 @@ class Population:
         """
 
         # Partition N players into fractions of 1 as accurately as possible
-        proportions = Generator._distribute_over_N(composition, N)
+        proportions = _Generator._distribute_over_N(composition, N)
 
         agents = []
         id_counter = 0
