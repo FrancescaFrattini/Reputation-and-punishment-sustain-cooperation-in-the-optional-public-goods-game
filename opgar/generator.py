@@ -2,7 +2,7 @@ import copy
 import logging
 import numpy as np
 
-class Generator:
+class _Generator:
     @staticmethod
     def _log_series(name, series):
         """
@@ -67,7 +67,7 @@ class Generator:
         dist_over_N = dist * N
         # dist_over_N = dist_over_N
         temp_dist = dist_over_N.astype(int)
-        logging.debug(Generator._log_series("Allocated: ", temp_dist))
+        logging.debug(_Generator._log_series("Allocated: ", temp_dist))
 
         # How many remaining agents need to be assigned a class
         remaining = N - sum(temp_dist)
@@ -79,7 +79,7 @@ class Generator:
         while remaining > 0:
             # get remainders
             unallocated_dist = dist_over_N - temp_dist
-            logging.debug(Generator._log_series("Unallocated: ", unallocated_dist))
+            logging.debug(_Generator._log_series("Unallocated: ", unallocated_dist))
 
             # get largest remainder
             max_remainder = max(unallocated_dist)
