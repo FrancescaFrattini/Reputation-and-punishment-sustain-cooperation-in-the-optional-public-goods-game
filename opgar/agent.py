@@ -136,6 +136,12 @@ class QLearningAgent(_Agent):
     def _get_row_values(self): return [max(deq) for deq in self.q_table[self.current_state]]
 
     def _init_state(self):
+        """
+        Initializes the Q-values for a new state in the Q-table. Each action (0, 1, None) starts with a deque containing a single value of 0.
+        Returns:
+            list: A list of deques, each representing the Q-values for the actions (0, 1, None) in the new state. Each deque has a maximum 
+            length of self.n
+    """
         return [
             deque([0], maxlen=self.n),
             deque([0], maxlen=self.n),
@@ -143,8 +149,20 @@ class QLearningAgent(_Agent):
         ]
 
     def _get_max_q_value(self, state):
+        """
+        Gets the maximum Q-value for a given state.
+        Args:
+            state (float): The state for which to get the maximum Q-value.
+        Returns:
+            float: The maximum Q-value for the given state.
+    """
         return max(deq[-1] for deq in self.q_table[state])
 
     def _is_uninitialized(self):
+        """
+        Checks if the Q-table for the current state is uninitialized (i.e., all actions have a single Q-value of 0).
+        Returns:
+            bool: True if the Q-table for the current state is uninitialized, False otherwise.
+    """
         return all(len(deq) == 1 and deq[0] == 0 for deq in self.q_table[self.current_state])
 
