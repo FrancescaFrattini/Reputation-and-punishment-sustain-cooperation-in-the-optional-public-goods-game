@@ -152,12 +152,25 @@ class QLearningAgent(_Agent):
             else:
                 return action
 
+      
     def _get_row_values(self, state_idx): return [max(deq) for deq in self.q_table[state_idx]]
-
+    
     def _get_max_q_value(self, state_idx):
+    """
+        Returns the maximum Q-value for a given state index.
+        Args:
+            state_idx (int): The index of the state in the Q-table.
+        Returns:
+            float: The maximum Q-value for the given state index.
+    """
         return max(deq[-1] for deq in self.q_table[state_idx])
 
     def _is_uninitialized(self):
+        """
+        Checks if the Q-table is uninitialized, meaning all entries are still at their initial value of 0.
+        Returns:
+            bool: True if the Q-table is uninitialized, False otherwise.
+        """
         return all (
             len(deq) == 1 and deq[0] == 0
             for row in self.q_table
