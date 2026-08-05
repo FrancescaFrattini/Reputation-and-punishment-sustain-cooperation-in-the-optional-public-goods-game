@@ -59,13 +59,14 @@ class Population:
         self.qtable_changes = defaultdict(int)
         self.subgroups = self._build_subgroups()
 
-    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True):
+    def simulate(self, t_step=None, job_id="", rng_seed=None, disable_bar=False, disable_export=False, transition_matrix_batch=None, record_actions_by_strategy=True, run_id=""):
         """
         Simulate multiple rounds of public goods games
 
         Args:
             t_step (int): Export data every t_step periods. For efficient memory usage in very long simulations. Default is None.
             job_id (str): Prepend all exported data files with this job_id.
+            run_id (str): Prepend all exported data files with this run_id.
             disable_bar (bool): Remove the tqdm progress bar if True. Default is False.
             disable_export (bool): Do not export datafiles if True. Default is False.
 
@@ -191,8 +192,8 @@ class Population:
             # ----------------------------------------------------------------------
             processing_start = time()
 
-            os.makedirs(os.path.dirname("csv/"), exist_ok=True)
-            os.makedirs(os.path.dirname("json/"), exist_ok=True)
+            os.makedirs(os.path.dirname(f"csv/{run_id}/"), exist_ok=True)
+            os.makedirs(os.path.dirname(f"json/{run_id}/"), exist_ok=True)
 
             # Average Payoffs & Population State & actions transitions
             avg_payoffs = pd.concat([period_results[n]["Average Payoffs"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
@@ -236,32 +237,33 @@ class Population:
             # Punishments
             #punishment_tracker = pd.DataFrame.from_dict(punishment_tracker, orient="index", dtype="float16")
             if not disable_export:
-                #punishment_tracker.to_csv(f"csv/j{job_id}_punishments_{batch_start}.csv")
+                #punishment_tracker.to_csv(f"csv{run_id}/j{job_id}_punishments_{batch_start}.csv")
 
                 if t_step is not None:
                     batch_code = f"_{batch_start}"
                 else:
                     batch_code = ""
-                action_tracker.to_csv(f"csv/j{job_id}_actions{batch_code}.csv")
-                avg_payoffs.to_csv(f"csv/j{job_id}_payoffs{batch_code}.csv")
-                population.to_csv(f"csv/j{job_id}_composition{batch_code}.csv")
-                reputation.to_csv(f"csv/j{job_id}_reputations{batch_code}.csv")
-                q_values_ranking.to_csv(f"csv/j{job_id}_q_values_rankings_{batch_start}.csv")
-                action_transitions.to_csv(f"csv/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+                action_tracker.to_csv(f"csv{run_id}/j{job_id}_actions{batch_code}.csv")
+                avg_payoffs.to_csv(f"csv{run_id}/j{job_id}_payoffs{batch_code}.csv")
+                population.to_csv(f"csv{run_id}/j{job_id}_composition{batch_code}.csv")
+                reputation.to_csv(f"csv{run_id}/j{job_id}_reputations{batch_code}.csv")
+                q_values_ranking.to_csv(f"csv{run_id}/j{job_id}_q_values_rankings_{batch_start}.csv")
+                action_transitions.to_csv(f"csv{run_id}/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
+
                 for batch_num, transition in enumerate(transitions):
-                    transition.to_csv(f"csv/j{job_id}_transitions{batch_code}_{batch_num}.csv")
+                    transition.to_csv(f"csv{run_id}/j{job_id}_transitions_{batch_start}_{batch_num}.csv", index=True)
 
                 if self.track_strategy_actions:
-                    strategy_tracker.to_csv(f"csv/j{job_id}_granular_actions{batch_code}.csv")
+                    strategy_tracker.to_csv(f"csv{run_id}/j{job_id}_granular_actions{batch_code}.csv")
 
             processing_end = time()
             logging.info(f"---> Export Batch Data ---> {processing_end-processing_start} seconds elapsed")
 
         if not disable_export:
-            with open(f"json/j{job_id}_config.json", "w") as f:
+            with open(f"json{run_id}/j{job_id}_config.json", "w") as f:
                 json.dump(self.config.to_dict(rng_seed), f)
 
-        with open(f"json/j{job_id}_table_changes.json", "w") as f:
+        with open(f"json{run_id}/j{job_id}_table_changes.json", "w") as f:
             json.dump([{str(k): self.qtable_changes[k]} for k in sorted(self.qtable_changes.keys(), key=float)],
                       f, indent=2)
 
