@@ -64,116 +64,107 @@ class _Agent:
         )
     
 class QLearningAgent(_Agent):
+    """Q-learning agent whose state is a rolling history of group actions."""
 
     __slots__ = _Agent.__slots__ + [
-    "alpha", "discount_factor", "q_table", "current_state", "n", "state_to_idx", "idx_to_state"
+        "alpha", "discount_factor", "q_table", "current_state", "n",
+        "state_to_idx", "idx_to_state", "state_history",
     ]
 
-    ACTIONS = [0, 1, None]  # Actions: cooperate (1), defect (0), withdraw (None)
+    ACTIONS = [0, 1, None]  # defect, cooperate, abstain
 
-    def __init__(self, ID, strategy, group_size, alpha=0.1, discount_factor=0.1, n=1):
+    def __init__(self, ID, strategy, group_size, alpha=0.1,
+                 discount_factor=0.1, n=1):
         super().__init__(ID, strategy=strategy)
-        self.alpha, self.discount_factor, self.n = alpha, discount_factor, n
-        combinations = [
-            (d, c, l)
-            for d in range(group_size)
-            for c in range(group_size)
-            for l in range(group_size)
-            if d + c + l == group_size - 1
-        ]
-        self.state_to_idx = {state: i for i, state in enumerate(combinations)}
-        self.idx_to_state = dict(enumerate(combinations))
-        self.q_table = np.empty((len(combinations), len(self.ACTIONS)), dtype=object)
 
-        for i in range(len(combinations)):
-            for j in range(len(self.ACTIONS)):
-                self.q_table[i, j] = deque([0], maxlen=self.n)
+        if not isinstance(n, int) or isinstance(n, bool) or not 1 <= n <= 10:
+            raise ValueError("n must be an integer between 1 and 10")
+
+        self.alpha = alpha
+        self.discount_factor = discount_factor
+        self.n = n
+
+        # The table starts without states.  Rows are created lazily when a
+        # previously unseen observation history is encountered.
+        self.q_table = np.zeros((0, len(self.ACTIONS)), dtype=float)
+        self.state_to_idx = {}
+        self.idx_to_state = {}
+        self.state_history = []
         self.current_state = None
-        
 
     def _choose_action(self, epsilon, average_reputation=None):
-        """
-        For Q-Learning agents there are two options for action selection:
-        1. Epsilon-greedy action selection: with probability epsilon, or if at the first step, choose a random action
-            Epsilon value decays at every time step of a factor of 0.99, ensuring exploration
-        2. Greedy action selection: choose the action with the highest Q-value for the current state
-
-        Args:
-            epsilon (float): The exploration rate, between 0.05 and 1
-            
-        Returns:
-            Action (str): Contributes 1 or 0 if playing, if not participating, then return None
-    """
-        if self.current_state is None or random.random() < epsilon or self._is_uninitialized():
+        """Choose an action with epsilon-greedy exploration."""
+        if (self.current_state is None or random.random() < epsilon
+                or self._is_uninitialized()):
             self.tracker.append(random.choice(self.ACTIONS))
         else:
-            best_action_index = np.argmax(self._get_row_values(self.current_state))
+            best_action_index = np.argmax(self.q_table[self.current_state])
             self.tracker.append(self.ACTIONS[best_action_index])
         return self.tracker[-1]
-    
+
     def learn(self, reward, contributions):
-        """        
-        Updates the agent's Q-values based on the count of actions taken from other group's members.
-        At each time step, the agent observes the contributions of other agents in the group for each possible action (1, 0, None).
-        The contributions are stored in a circular buffer (self.q_table) of size n, where n is the number of time steps to remember.
-        After each round, the agent updates its Q-values based on the observed contributions.
-        Args:
-            contributions (dict): A dictionary with keys as actions (1, 0, None) and values as the count of agents who chose 
-            that action.
-            reward (float): The reward received after taking the last action.    
-    """
-        
-        triple = Utils.from_counter_to_tuple(counter = contributions)
-        #next state index
-        idx = self.state_to_idx[triple]
-        #action index of current state
-        action_idx = self._action_to_index(self.tracker[-1])
-        
+        """Update Q after observing the group's actions for this round.
+
+        ``contributions`` is converted into one action-count triple.  The
+        state is the ordered tuple of the most recent triples, up to ``n``.
+        Therefore, during the first ``n`` rounds its length grows from 1 to
+        ``n``; afterwards it behaves as a circular observation window.
+        """
+        observed_triple = Utils.from_counter_to_tuple(counter=contributions)
+        next_state = self._append_observation(observed_triple)
+        next_state_idx = self._get_or_create_state(next_state)
+
+        logging.info(f"agent {self.ID} chose action {self.tracker[-1]} current Q-table is {self.q_table} \
+        \n observed_triple {observed_triple} \n next_state {next_state} \n next state id {next_state_idx}")
+
+        # At the first round there is no previous state/action pair to update.
         if self.current_state is not None:
-            current_qvalue = self.q_table[self.current_state, action_idx][-1]
-            next_qvalue = self._get_max_q_value(idx)
-            td_error = reward  + (self.discount_factor * next_qvalue) - current_qvalue
-            new_qvalue = current_qvalue + (self.alpha * td_error)
-            self.q_table[self.current_state, action_idx].append(new_qvalue)
-        #updates current state
-        self.current_state = idx
-    
+            action_idx = self._action_to_index(self.tracker[-1])
+            current_qvalue = self.q_table[self.current_state, action_idx]
+            next_qvalue = np.argmax(self.q_table[next_state_idx])
+            td_error = reward + self.discount_factor * next_qvalue - current_qvalue
+            self.q_table[self.current_state, action_idx] = (
+                current_qvalue + self.alpha * td_error
+            )
+
+        logging.info(f"updated q-table for agent {self.ID} :\n {self.q_table}")
+
+        self.current_state = next_state_idx
+
+    def _append_observation(self, observed_triple):
+        """Add an observation and return the immutable history-state key."""
+        self.state_history.append(observed_triple)
+        if len(self.state_history) > self.n:
+            self.state_history.pop(0)
+        return tuple(self.state_history)
+
+    def _get_or_create_state(self, state):
+        """Return a state row, adding a zero-initialized row when necessary."""
+        state_idx = self.state_to_idx.get(state)
+        if state_idx is not None:
+            return state_idx
+
+        state_idx = len(self.state_to_idx)
+        self.state_to_idx[state] = state_idx
+        self.idx_to_state[state_idx] = state
+        self.q_table = np.vstack((
+            self.q_table,
+            np.zeros((1, len(self.ACTIONS)), dtype=float),
+        ))
+        return state_idx
 
     def _action_to_index(self, action):
-            """
+        """
             Converts action (0, 1, None) to index (0, 1, 2) for Q-table access.
             Args:
                 action (int or None): The action taken by the agent (0, 1, or None).
             Returns:
                 int: The corresponding index in the Q-table (0 for action 0, 1 for action 1, 2 for action None).    
         """
-            if action is None:  
-                return 2
-            else:
-                return action
-
-      
-    def _get_row_values(self, state_idx): return [max(deq) for deq in self.q_table[state_idx]]
-    
-    def _get_max_q_value(self, state_idx):
-    """
-        Returns the maximum Q-value for a given state index.
-        Args:
-            state_idx (int): The index of the state in the Q-table.
-        Returns:
-            float: The maximum Q-value for the given state index.
-    """
-        return max(deq[-1] for deq in self.q_table[state_idx])
+        if action is None:
+            return 2
+        return action
 
     def _is_uninitialized(self):
-        """
-        Checks if the Q-table is uninitialized, meaning all entries are still at their initial value of 0.
-        Returns:
-            bool: True if the Q-table is uninitialized, False otherwise.
-        """
-        return all (
-            len(deq) == 1 and deq[0] == 0
-            for row in self.q_table
-            for deq in row
-        )
-
+        """Whether the currently observed history has never been updated."""
+        return np.all(self.q_table[self.current_state] == 0)

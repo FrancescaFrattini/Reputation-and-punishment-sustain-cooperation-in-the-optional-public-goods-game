@@ -206,13 +206,14 @@ class Population:
             action_transitions = pd.concat([pd.Series(period_results[n]["Transitions"]) for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
             action_transitions.index = np.arange((batch_end - batch_start) * self.config.omega)
 
+            """
             all_avg = sorted({avg for n in range((batch_end - batch_start) * self.config.omega) for avg in period_results[n]["Q values"].keys()})
             q_values_ranking = pd.DataFrame([
                 {avg: period_results[n]["Q values"].get(avg, {0: 0, 1: 0, 2: 0}) for avg in all_avg}
                 for n in range((batch_end - batch_start) * self.config.omega)
             ])
             q_values_ranking = q_values_ranking.map(lambda d: {k: d.get(k, 0) for k in [0, 1, 2]} if isinstance(d, dict) else {0: 0, 1: 0, 2: 0})
-
+            """
             # Actions
             action_tracker = pd.DataFrame(cooperative_action_tracker, columns=["Cooperative", "Non-Cooperative", "Loner"], index=range(batch_start, batch_end))
             action_tracker = action_tracker.astype("float16")
@@ -242,7 +243,7 @@ class Population:
                 avg_payoffs.to_csv(f"csv{run_id}/j{job_id}_payoffs{batch_code}.csv")
                 population.to_csv(f"csv{run_id}/j{job_id}_composition{batch_code}.csv")
                 reputation.to_csv(f"csv{run_id}/j{job_id}_reputations{batch_code}.csv")
-                q_values_ranking.to_csv(f"csv{run_id}/j{job_id}_q_values_rankings_{batch_start}.csv")
+                #q_values_ranking.to_csv(f"csv{run_id}/j{job_id}_q_values_rankings_{batch_start}.csv")
                 action_transitions.to_csv(f"csv{run_id}/j{job_id}_transitions_per_timestep_{batch_start}.csv", index=True)
 
                 for batch_num, transition in enumerate(transitions):
@@ -597,9 +598,9 @@ class Population:
             period_result["Composition Count"][agent.strategy["behavioural"]] += 1
                 
             if agent.strategy["behavioural"] == "XII":
-                for state_idx, row in enumerate(agent.q_table):
-                    ranking = np.argmax([deq[-1] for deq in row])
-                    period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
+                #for state_idx, row in enumerate(agent.q_table):
+                    #ranking = np.argmax([row])
+                    #period_result["Q values"][agent.idx_to_state[state_idx]][ranking] += 1
                 period_result["Payoffs"][agent.strategy["behavioural"] + "_" + self.agent_to_group.get(agent.ID, "UNKNOWN") + "_" + 
                                     str(agent.tracker[-1])] += (agent.utility - 1)
                 period_result["Actions per strategy"][agent.strategy["behavioural"] + "_" + self.agent_to_group.get(agent.ID, "UNKNOWN") + 
