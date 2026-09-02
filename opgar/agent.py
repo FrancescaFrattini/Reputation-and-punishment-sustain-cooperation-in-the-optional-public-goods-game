@@ -93,7 +93,15 @@ class QLearningAgent(_Agent):
         self.current_state = None
 
     def _choose_action(self, epsilon, average_reputation=None):
-        """Choose an action with epsilon-greedy exploration."""
+        """
+            Choose an action with epsilon-greedy exploration.
+            Args:
+                epsilon (float): The probability of choosing a random action (exploration).
+                average_reputation (float, optional): The average reputation of the group. 
+                Not used in this Q-learning agent, but kept for compatibility with the base class.
+            Returns:
+                action (int or None): The chosen action (0, 1, or None).    
+        """
         if (self.current_state is None or random.random() < epsilon
                 or self._is_uninitialized()):
             self.tracker.append(random.choice(self.ACTIONS))
@@ -114,9 +122,6 @@ class QLearningAgent(_Agent):
         next_state = self._append_observation(observed_triple)
         next_state_idx = self._get_or_create_state(next_state)
 
-        logging.info(f"agent {self.ID} chose action {self.tracker[-1]} current Q-table is {self.q_table} \
-        \n observed_triple {observed_triple} \n next_state {next_state} \n next state id {next_state_idx}")
-
         # At the first round there is no previous state/action pair to update.
         if self.current_state is not None:
             action_idx = self._action_to_index(self.tracker[-1])
@@ -127,19 +132,31 @@ class QLearningAgent(_Agent):
                 current_qvalue + self.alpha * td_error
             )
 
-        logging.info(f"updated q-table for agent {self.ID} :\n {self.q_table}")
-
         self.current_state = next_state_idx
 
     def _append_observation(self, observed_triple):
-        """Add an observation and return the immutable history-state key."""
+        """
+            Add an observation and return the immutable history-state key.
+            Args:
+                observed_triple (tuple): A tuple representing the counts of actions (cooperate, defect, abstain) 
+                in the current round.
+            Returns:
+                tuple: An immutable tuple representing the current history of observed action counts, up to length n    
+        """
         self.state_history.append(observed_triple)
         if len(self.state_history) > self.n:
             self.state_history.pop(0)
         return tuple(self.state_history)
 
     def _get_or_create_state(self, state):
-        """Return a state row, adding a zero-initialized row when necessary."""
+        """
+            Return a state row, adding a zero-initialized row when necessary.
+            Args:
+                state (tuple): An immutable tuple representing the current history of observed action counts.
+            Returns:
+                int: The index of the state in the Q-table. If the state is new, it is added to the Q-table and the 
+                index is returned.        
+        """
         state_idx = self.state_to_idx.get(state)
         if state_idx is not None:
             return state_idx
@@ -166,5 +183,9 @@ class QLearningAgent(_Agent):
         return action
 
     def _is_uninitialized(self):
-        """Whether the currently observed history has never been updated."""
+        """
+            Whether the currently observed history has never been updated.
+            Returns:
+                bool: True if the current state has never been updated in the Q-table, False otherwise.
+        """
         return np.all(self.q_table[self.current_state] == 0)
