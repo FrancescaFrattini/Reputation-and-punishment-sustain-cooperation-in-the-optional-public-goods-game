@@ -193,8 +193,8 @@ class Population:
             # ----------------------------------------------------------------------
             processing_start = time()
 
-            os.makedirs(os.path.dirname(f"csv/{run_id}/"), exist_ok=True)
-            os.makedirs(os.path.dirname(f"json/{run_id}/"), exist_ok=True)
+            os.makedirs(os.path.dirname(f"csv{run_id}/"), exist_ok=True)
+            os.makedirs(os.path.dirname(f"json{run_id}/"), exist_ok=True)
 
             # Average Payoffs & Population State & actions transitions
             avg_payoffs = pd.concat([period_results[n]["Average Payoffs"] for n in range((batch_end - batch_start) * self.config.omega)], axis=1).transpose()
